@@ -1,0 +1,50 @@
+{
+  "name": "inascraft-launcher",
+  "version": "1.0.0",
+  "description": "Launcher customizado InasCraft para Minecraft NeoForge 1.20.1",
+  "main": "out/main/index.js",
+  "author": "InasCraft",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build && electron-builder",
+    "build:win": "electron-vite build && electron-builder --win",
+    "build:linux": "electron-vite build && electron-builder --linux",
+    "build:mac": "electron-vite build && electron-builder --mac",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "build-pack": "ts-node --project tsconfig.tools.json tools/build-pack.ts"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.7",
+    "extract-zip": "^2.0.1",
+    "minecraft-launcher-core": "^3.18.2",
+    "tar": "^6.2.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@electron-toolkit/tsconfig": "^2.0.0",
+    "@electron-toolkit/utils": "^4.0.0",
+    "@types/node": "^20.11.5",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/tar": "^6.1.12",
+    "@types/uuid": "^9.0.7",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^45.1.0",
+    "electron-builder": "^24.9.1",
+    "electron-vite": "^1.0.29",
+    "eslint": "^8.56.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vite": "^4.5.2"
+  }
+}

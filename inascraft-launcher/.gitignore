@@ -1,0 +1,20 @@
+node_modules/
+dist/
+out/
+dist-pack/
+release/
+packfiles/mods/*.jar
+packfiles/resourcepacks/*.zip
+packfiles/shaderpacks/
+
+# Segredos e configs locais
+.env
+*.env.local
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db

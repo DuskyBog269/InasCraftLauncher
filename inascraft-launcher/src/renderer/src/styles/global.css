@@ -1,0 +1,219 @@
+/* ============================================================
+   InasCraft — Estilos Globais
+   Visual inspirado no Minecraft: pixel art, paleta de blocos
+   ============================================================ */
+
+/* Fonte Minecraft — bitmap pixel art */
+@font-face {
+  font-family: 'Minecraft';
+  src: url('../assets/fonts/Minecraft.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* ── Reset e base ──────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Paleta de cores — blocos do Minecraft */
+  --color-bg:         #1a1a1a;  /* pedra escura */
+  --color-panel:      #2d2d2d;  /* pedra média */
+  --color-panel-light:#3a3a3a;  /* pedra clara */
+  --color-border:     #555555;  /* borda pedra */
+  --color-border-dark:#111111;  /* borda sombra */
+
+  --color-grass:      #5a8a3c;  /* verde grama */
+  --color-grass-dark: #3d6128;  /* verde grama escuro */
+  --color-dirt:       #8B6914;  /* marrom terra */
+  --color-dirt-dark:  #5c4409;  /* marrom terra escuro */
+
+  --color-text:       #f0f0f0;  /* texto branco */
+  --color-text-dim:   #aaaaaa;  /* texto cinza */
+  --color-text-dark:  #555555;  /* texto desabilitado */
+  --color-gold:       #f0f020;  /* amarelo splash */
+  --color-amber:      #f0a030;  /* laranja aviso */
+  --color-red:        #cc3333;  /* vermelho erro */
+  --color-blue:       #3399cc;  /* azul info */
+
+  /* Tipografia */
+  --font-minecraft: 'Minecraft', 'Courier New', monospace;
+  --font-ui: var(--font-minecraft);
+
+  /* Borda estilo pixel art (sem radius) */
+  --border-pixel: 2px solid var(--color-border);
+  --shadow-pixel: inset -2px -4px 0 var(--color-border-dark),
+                  inset 2px 2px 0 rgba(255,255,255,0.15);
+  --shadow-pixel-pressed: inset 2px 4px 0 var(--color-border-dark),
+                          inset -2px -2px 0 rgba(255,255,255,0.05);
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.4;
+  /* Desabilitar seleção de texto na UI */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Scrollbar estilo pixel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-panel);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-grass);
+}
+
+/* ── Botão estilo Minecraft ────────────────────────────────── */
+.mc-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background-color: #5a5a5a;
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  text-shadow: 1px 1px 0 #1a1a1a;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-pixel);
+  transition: background-color 0.05s;
+  image-rendering: pixelated;
+  letter-spacing: 0.5px;
+}
+
+.mc-button:hover:not(:disabled) {
+  background-color: #7a7a7a;
+  color: var(--color-gold);
+}
+
+.mc-button:active:not(:disabled) {
+  box-shadow: var(--shadow-pixel-pressed);
+  transform: translateY(1px);
+}
+
+.mc-button:disabled {
+  background-color: #3a3a3a;
+  color: var(--color-text-dark);
+  cursor: not-allowed;
+}
+
+/* Variante verde (botão primário — JOGAR) */
+.mc-button--primary {
+  background-color: var(--color-grass-dark);
+  font-size: 18px;
+  padding: 12px 32px;
+  letter-spacing: 1px;
+}
+
+.mc-button--primary:hover:not(:disabled) {
+  background-color: var(--color-grass);
+}
+
+/* Variante vermelha (ações destrutivas) */
+.mc-button--danger {
+  background-color: #7a2222;
+}
+
+.mc-button--danger:hover:not(:disabled) {
+  background-color: #aa3333;
+}
+
+/* ── Painel estilo pixel art ───────────────────────────────── */
+.mc-panel {
+  background-color: var(--color-panel);
+  border: 2px solid var(--color-border-dark);
+  box-shadow: 2px 2px 0 var(--color-border),
+              inset 1px 1px 0 rgba(255,255,255,0.05);
+  padding: 16px;
+}
+
+/* ── Input estilo Minecraft ────────────────────────────────── */
+.mc-input {
+  background-color: #111111;
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  padding: 8px 12px;
+  border: 1px solid #555;
+  box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #333;
+  outline: none;
+  width: 100%;
+}
+
+.mc-input:focus {
+  border-color: var(--color-grass);
+  box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #333, 0 0 0 1px var(--color-grass);
+}
+
+.mc-input::placeholder {
+  color: var(--color-text-dark);
+}
+
+/* ── Barra de progresso pixel art ─────────────────────────── */
+.mc-progress {
+  width: 100%;
+  height: 16px;
+  background-color: #111;
+  border: 1px solid #555;
+  box-shadow: inset 1px 1px 0 #000;
+  overflow: hidden;
+}
+
+.mc-progress__fill {
+  height: 100%;
+  background-color: var(--color-grass);
+  box-shadow: inset 0 -2px 0 var(--color-grass-dark);
+  transition: width 0.2s ease;
+}
+
+/* Animação de loading (largura desconhecida) */
+.mc-progress--indeterminate .mc-progress__fill {
+  width: 40% !important;
+  animation: progress-slide 1.5s linear infinite;
+}
+
+@keyframes progress-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* ── Utilitários ───────────────────────────────────────────── */
+.text-gold    { color: var(--color-gold); }
+.text-amber   { color: var(--color-amber); }
+.text-red     { color: var(--color-red); }
+.text-dim     { color: var(--color-text-dim); }
+.text-grass   { color: var(--color-grass); }
+
+.shadow-text {
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
+}
+
+/* Transição de tela */
+.screen-enter {
+  animation: fadeIn 0.2s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

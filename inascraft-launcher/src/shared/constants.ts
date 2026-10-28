@@ -5,8 +5,8 @@
 /** Configuração do modpack */
 export const PACK_CONFIG = {
   MINECRAFT_VERSION: '1.20.1',
-  MODLOADER: 'forge' as const,
-  MODLOADER_VERSION: '47.2.0', // Forge 47.x para MC 1.20.1
+  MODLOADER: 'fabric' as const,
+  MODLOADER_VERSION: '0.16.9', // Fabric para MC 1.20.1
   JAVA_VERSION: 17
 }
 

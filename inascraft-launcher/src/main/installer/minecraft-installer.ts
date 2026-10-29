@@ -102,16 +102,29 @@ export async function installFabric(
 
   console.log('[Fabric] Buscando informações da versão...')
 
-  // Obter dados do Fabric
+  // Obter dados do Fabric (retorna um objeto quando versão é especificada)
   const fabricMetaUrl = `http://meta.fabricmc.net/v2/versions/loader/${MC_VERSION}/${FABRIC_VERSION}`
+  console.log('[Fabric] Fetching:', fabricMetaUrl)
   const fabricMeta = await fetchJson<{
-    loader: { url: string, sha1: string }
-    intermediary: { url: string, sha1: string }
-    launchermeta: { libraries: { name: string, url: string }[] }
+    loader: { maven: string, version: string, stable: boolean }
+    intermediary: { maven: string, version: string, stable: boolean }
+    launcherMeta: { version: number, min_java_version: number, libraries: { common: { name: string, url: string }[] } }
   }>(fabricMetaUrl)
 
+  console.log('[Fabric] Loader Maven:', fabricMeta.loader.maven)
+
+  // URL de download do loader (usando Maven)
+  // Maven: net.fabricmc:fabric-loader:0.16.9
+  // URL: net/fabricmc/fabric-loader/0.16.9/fabric-loader-0.16.9.jar
+  const mavenParts = fabricMeta.loader.maven.split(':')
+  const groupPath = mavenParts[0].replace(/\./g, '/')
+  const artifact = mavenParts[1]
+  const version = mavenParts[2]
+  const loaderUrl = `https://maven.fabricmc.net/${groupPath}/${artifact}/${version}/${artifact}-${version}.jar`
+  console.log('[Fabric] Loader URL:', loaderUrl)
+
   console.log('[Fabric] Baixando loader...')
-  await downloadFile(fabricMeta.loader.url, loaderJar, (d, t) => {
+  await downloadFile(loaderUrl, loaderJar, (d, t) => {
     onProgress({ stage: 'Baixando Fabric...', current: d, total: t, file: 'fabric-loader.jar' })
   })
 
@@ -165,8 +178,20 @@ export async function installFabric(
 
 function fetchText(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
+    if (!url || typeof url !== 'string') { reject(new Error('URL inválida')); return }
     const client = url.startsWith('https') ? https : http
     client.get(url, { headers: { 'User-Agent': 'InasCraft-Launcher/1.0' } }, (res: IncomingMessage) => {
+      // Seguir redirects (301, 302, etc.)
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
+        const location = res.headers.location
+        if (location) {
+          const redirectUrl = Array.isArray(location) ? location[0] : location
+          const fullRedirectUrl = new URL(redirectUrl, url).toString()
+          console.log('[HTTP] Redirect para:', fullRedirectUrl)
+          fetchText(fullRedirectUrl).then(resolve).catch(reject)
+          return
+        }
+      }
       if (res.statusCode !== 200) { reject(new Error(`HTTP ${res.statusCode}`)); return }
       let data = ''
       res.on('data', chunk => data += chunk)
@@ -177,8 +202,20 @@ function fetchText(url: string): Promise<string> {
 
 function fetchJson<T>(url: string): Promise<T> {
   return new Promise((resolve, reject) => {
+    if (!url || typeof url !== 'string') { reject(new Error('URL inválida')); return }
     const client = url.startsWith('https') ? https : http
     client.get(url, { headers: { 'User-Agent': 'InasCraft-Launcher/1.0' } }, (res: IncomingMessage) => {
+      // Seguir redirects (301, 302, etc.)
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
+        const location = res.headers.location
+        if (location) {
+          const redirectUrl = Array.isArray(location) ? location[0] : location
+          const fullRedirectUrl = new URL(redirectUrl, url).toString()
+          console.log('[HTTP] Redirect para:', fullRedirectUrl)
+          fetchJson<T>(fullRedirectUrl).then(resolve).catch(reject)
+          return
+        }
+      }
       if (res.statusCode !== 200) { reject(new Error(`HTTP ${res.statusCode}`)); return }
       let data = ''
       res.on('data', chunk => data += chunk)
@@ -189,19 +226,29 @@ function fetchJson<T>(url: string): Promise<T> {
 
 function downloadFile(url: string, dest: string, onProgress?: (d: number, t: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (!url || typeof url !== 'string') { reject(new Error('URL inválida: ' + url)); return }
     const client = url.startsWith('https') ? https : http
-    client.get(url, { headers: { 'User-Agent': 'InasCraft-Launcher/1.0' } }, (res: IncomingMessage) => {
+    const req = client.get(url, { headers: { 'User-Agent': 'InasCraft-Launcher/1.0' } }, (res: IncomingMessage) => {
+      // Seguir redirects (301, 302, etc.)
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
+        const location = res.headers.location
+        if (location) {
+          const redirectUrl = Array.isArray(location) ? location[0] : location
+          const fullRedirectUrl = new URL(redirectUrl, url).toString()
+          console.log('[HTTP] Redirect para:', fullRedirectUrl)
+          downloadFile(fullRedirectUrl, dest, onProgress).then(resolve).catch(reject)
+          return
+        }
+      }
       if (res.statusCode !== 200) { reject(new Error(`HTTP ${res.statusCode}`)); return }
       const total = parseInt(res.headers['content-length'] ?? '0', 10)
-      let downloaded = 0, lastTime = Date.now(), lastBytes = 0
+      let downloaded = 0, lastTime = Date.now()
       const file = createWriteStream(dest)
       res.on('data', (chunk: Buffer) => {
         downloaded += chunk.length
-        const now = Date.now()
-        const elapsed = (now - lastTime) / 1000
-        if (elapsed >= 0.5 && onProgress) {
+        if (Date.now() - lastTime >= 500 && onProgress) {
           onProgress(downloaded, total)
-          lastTime = now; lastBytes = downloaded
+          lastTime = Date.now()
         }
       })
       pipeline(res as NodeJS.ReadableStream, file)

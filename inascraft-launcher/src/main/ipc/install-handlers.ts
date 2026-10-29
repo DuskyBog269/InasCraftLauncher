@@ -2,7 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { IPC } from '../../shared/ipc-channels'
 import { store, getInstallDir } from '../store'
 import { resolveJava } from '../installer/java-manager'
-import { isMinecraftInstalled, installMinecraft, isFabricInstalled, installFabric } from '../installer/minecraft-installer'
+import { isMinecraftInstalled, installMinecraft, isForgeInstalled, installForge } from '../installer/minecraft-installer'
 import { fetchRemoteManifest, diffManifest, applyUpdate, verifyAndRepair } from '../installer/pack-updater'
 import type { ProgressEvent } from '../../shared/types'
 
@@ -31,12 +31,12 @@ export function registerInstallHandlers(mainWindow: BrowserWindow): void {
         console.log('[Install] Minecraft já instalado')
       }
 
-      // Fabric
-      sendProgress({ stage: 'Verificando Fabric...', current: 2, total: 5 })
-      if (!isFabricInstalled(installDir)) {
-        await installFabric(installDir, javaPath, sendProgress)
+      // Forge
+      sendProgress({ stage: 'Verificando Forge...', current: 2, total: 5 })
+      if (!isForgeInstalled(installDir)) {
+        await installForge(installDir, javaPath, sendProgress)
       } else {
-        console.log('[Install] Fabric já instalado')
+        console.log('[Install] Forge já instalado')
       }
 
       // Pack

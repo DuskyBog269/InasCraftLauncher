@@ -1,16 +1,17 @@
-import { existsSync, mkdirSync, createWriteStream, unlinkSync, writeFileSync, copyFileSync } from 'fs'
+import { existsSync, mkdirSync, createWriteStream, unlinkSync, writeFileSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { pipeline } from 'stream/promises'
 import http from 'http'
 import https from 'https'
 import { IncomingMessage } from 'http'
+import { execSync } from 'child_process'
 import { PACK_CONFIG } from '../../shared/constants'
 import type { ProgressEvent } from '../../shared/types'
 
 export type InstallProgressCallback = (progress: ProgressEvent) => void
 
 const MC_VERSION = PACK_CONFIG.MINECRAFT_VERSION
-const FABRIC_VERSION = PACK_CONFIG.MODLOADER_VERSION
+const FORGE_VERSION = PACK_CONFIG.MODLOADER_VERSION
 
 export async function installMinecraft(
   installDir: string,
@@ -73,107 +74,103 @@ export function isMinecraftInstalled(installDir: string): boolean {
   return existsSync(jar)
 }
 
-export function getFabricVersionString(): string {
-  return `${MC_VERSION}-fabric-${FABRIC_VERSION}`
+export function getForgeVersionString(): string {
+  return `${MC_VERSION}-forge-${FORGE_VERSION}`
 }
 
-export function isFabricInstalled(installDir: string): boolean {
-  const versionStr = getFabricVersionString()
+export function isForgeInstalled(installDir: string): boolean {
+  const versionStr = getForgeVersionString()
   const json = join(installDir, 'versions', versionStr, `${versionStr}.json`)
   return existsSync(json)
 }
 
-export async function installFabric(
+export async function installForge(
   installDir: string,
-  _javaPath: string,
+  javaPath: string,
   onProgress: InstallProgressCallback
 ): Promise<void> {
-  const versionStr = getFabricVersionString()
+  const versionStr = getForgeVersionString()
   const versionDir = join(installDir, 'versions', versionStr)
   const versionJson = join(versionDir, `${versionStr}.json`)
-  const loaderJar = join(versionDir, `${versionStr}.jar`)
-
-  mkdirSync(versionDir, { recursive: true })
+  const installerJar = join(installDir, 'forge-installer.jar')
 
   if (existsSync(versionJson)) {
-    console.log('[Fabric] Já instalado')
+    console.log('[Forge] Já instalado')
     return
   }
 
-  console.log('[Fabric] Buscando informações da versão...')
+  console.log('[Forge] Baixando installer...')
 
-  // Obter dados do Fabric (retorna um objeto quando versão é especificada)
-  const fabricMetaUrl = `http://meta.fabricmc.net/v2/versions/loader/${MC_VERSION}/${FABRIC_VERSION}`
-  console.log('[Fabric] Fetching:', fabricMetaUrl)
-  const fabricMeta = await fetchJson<{
-    loader: { maven: string, version: string, stable: boolean }
-    intermediary: { maven: string, version: string, stable: boolean }
-    launcherMeta: { version: number, min_java_version: number, libraries: { common: { name: string, url: string }[] } }
-  }>(fabricMetaUrl)
+  // Tentar múltiplas fontes para o installer JAR
+  const installerUrls = [
+    // Seu GitHub Releases (confiável)
+    `https://github.com/DuskyBog269/InasCraftLauncher/releases/download/forge-${FORGE_VERSION}/forge-${MC_VERSION}-${FORGE_VERSION}-installer.jar`,
+    // Maven oficial (neoforged hospeda Forge antigo)
+    `https://maven.neoforged.net/net/minecraftforge/forge/${MC_VERSION}-${FORGE_VERSION}/forge-${MC_VERSION}-${FORGE_VERSION}-installer.jar`,
+    // Direct link alternativo
+    `https://maven.neoforged.net/net/minecraftforge/forge/${FORGE_VERSION}/forge-${FORGE_VERSION}-installer.jar`
+  ]
 
-  console.log('[Fabric] Loader Maven:', fabricMeta.loader.maven)
-
-  // URL de download do loader (usando Maven)
-  // Maven: net.fabricmc:fabric-loader:0.16.9
-  // URL: net/fabricmc/fabric-loader/0.16.9/fabric-loader-0.16.9.jar
-  const mavenParts = fabricMeta.loader.maven.split(':')
-  const groupPath = mavenParts[0].replace(/\./g, '/')
-  const artifact = mavenParts[1]
-  const version = mavenParts[2]
-  const loaderUrl = `https://maven.fabricmc.net/${groupPath}/${artifact}/${version}/${artifact}-${version}.jar`
-  console.log('[Fabric] Loader URL:', loaderUrl)
-
-  console.log('[Fabric] Baixando loader...')
-  await downloadFile(loaderUrl, loaderJar, (d, t) => {
-    onProgress({ stage: 'Baixando Fabric...', current: d, total: t, file: 'fabric-loader.jar' })
-  })
-
-  // Baixar o client.jar vanilla para referência
-  const vanillaVersionJson = join(installDir, 'versions', MC_VERSION, `${MC_VERSION}.json`)
-  if (existsSync(vanillaVersionJson)) {
-    const vanillaData = JSON.parse(read_fileSync(vanillaVersionJson, 'utf-8'))
-
-    // Criar versão do Fabric que herda do vanilla
-    const fabricVersionJson = {
-      id: versionStr,
-      releaseTime: new Date().toISOString(),
-      time: new Date().toISOString(),
-      type: 'release',
-      mainClass: 'net.fabricmc.loader.impl.launch.knot.KnotClient',
-      inheritsFrom: MC_VERSION,
-      arguments: { game: ['--username', '${auth_player_name}', '--version', '${version_name}', '--gameDir', '${game_directory}', '--assetsDir', '${assets_root}', '--assetIndex', '${assets_index_name}', '--uuid', '${auth_uuid}', '--accessToken', '${auth_access_token}', '--userType', '${user_type}', '--versionType', '${version_type}'] },
-      libraries: [
-        ...(vanillaData.libraries || []),
-        { name: 'net.fabricmc:yarn:' + MC_VERSION + '+build.' + FABRIC_VERSION, url: 'https://maven.fabricmc.net/' },
-        { name: 'net.fabricmc:fabric-loader:' + FABRIC_VERSION, url: 'https://maven.fabricmc.net/' },
-        ...(vanillaData.libraries?.filter((l: { name: string }) => l.name.includes('launchwrapper')) || [])
-      ],
-      minimumLauncherVersion: 21,
-      assetIndex: vanillaData.assetIndex
+  let downloaded = false
+  for (const url of installerUrls) {
+    try {
+      console.log('[Forge] Tentando:', url)
+      await downloadFile(url, installerJar, (d, t) => {
+        onProgress({ stage: 'Baixando Forge...', current: d, total: t, file: 'forge-installer.jar' })
+      })
+      console.log('[Forge] Installer baixado')
+      downloaded = true
+      break
+    } catch (e) {
+      console.log('[Forge] Falhou:', (e as Error).message)
     }
-
-    writeFileSync(versionJson, JSON.stringify(fabricVersionJson, null, 2))
-  } else {
-    // Se não tiver vanilla, criar JSON básico
-    const fabricVersionJson = {
-      id: versionStr,
-      releaseTime: new Date().toISOString(),
-      time: new Date().toISOString(),
-      type: 'release',
-      mainClass: 'net.fabricmc.loader.impl.launch.knot.KnotClient',
-      inheritsFrom: MC_VERSION,
-      arguments: { game: [] },
-      libraries: [
-        { name: 'net.fabricmc:yarn:' + MC_VERSION + '+build.' + FABRIC_VERSION, url: 'https://maven.fabricmc.net/' },
-        { name: 'net.fabricmc:fabric-loader:' + FABRIC_VERSION, url: 'https://maven.fabricmc.net/' }
-      ],
-      minimumLauncherVersion: 21
-    }
-
-    writeFileSync(versionJson, JSON.stringify(fabricVersionJson, null, 2))
   }
 
-  console.log('[Fabric] Instalado com sucesso')
+  if (!downloaded) {
+    // Última tentativa: скачать do прямой link do repositório
+    console.log('[Forge] Tentando fontes alternativas...')
+    const altUrls = [
+      // Repo fork que pode ter os installers
+      `https://raw.githubusercontent.com/MinecraftForge/MinecraftForge/${FORGE_VERSION}/src/main/resources/forge-${MC_VERSION}-${FORGE_VERSION}-installer.jar`,
+    ]
+    for (const url of altUrls) {
+      try {
+        await downloadFile(url, installerJar, (d, t) => {
+          onProgress({ stage: 'Baixando Forge (alt)...', current: d, total: t, file: 'forge-installer.jar' })
+        })
+        console.log('[Forge] Installer baixado de fonte alternativa')
+        downloaded = true
+        break
+      } catch (e) {
+        console.log('[Forge] Alt falhou:', (e as Error).message)
+      }
+    }
+  }
+
+  if (!downloaded) {
+    throw new Error('Não foi possível baixar o installer do Forge. Tente fazer upload manualmente no GitHub.')
+  }
+
+  console.log('[Forge] Executando installer...')
+  onProgress({ stage: 'Instalando Forge...', current: 50, total: 100 })
+
+  // Executar installer
+  const psCmd = `"${javaPath}" -jar "${installerJar}" --installClient "${installDir}"`
+  try {
+    execSync(psCmd, { stdio: 'pipe', timeout: 180000 })
+    console.log('[Forge] Installer executado com sucesso')
+  } catch (e) {
+    console.warn('[Forge] Installer pode ter falhado:', e)
+  }
+
+  // Limpar installer
+  try { unlinkSync(installerJar) } catch { }
+
+  if (existsSync(versionJson)) {
+    console.log('[Forge] Instalado com sucesso')
+  } else {
+    throw new Error('Installer do Forge não criou os arquivos esperados')
+  }
 }
 
 function fetchText(url: string): Promise<string> {
@@ -228,7 +225,7 @@ function downloadFile(url: string, dest: string, onProgress?: (d: number, t: num
   return new Promise((resolve, reject) => {
     if (!url || typeof url !== 'string') { reject(new Error('URL inválida: ' + url)); return }
     const client = url.startsWith('https') ? https : http
-    const req = client.get(url, { headers: { 'User-Agent': 'InasCraft-Launcher/1.0' } }, (res: IncomingMessage) => {
+    client.get(url, { headers: { 'User-Agent': 'InasCraft-Launcher/1.0' } }, (res: IncomingMessage) => {
       // Seguir redirects (301, 302, etc.)
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
         const location = res.headers.location
@@ -256,9 +253,4 @@ function downloadFile(url: string, dest: string, onProgress?: (d: number, t: num
         .catch(reject)
     }).on('error', reject)
   })
-}
-
-function read_fileSync(path: string, encoding: string): string {
-  const { readFileSync } = require('fs')
-  return readFileSync(path, encoding)
 }

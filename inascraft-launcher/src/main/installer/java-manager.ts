@@ -11,7 +11,7 @@ function checkJavaVersion(javaExe: string): boolean {
   try {
     const output = execSync(`"${javaExe}" -version 2>&1`, { encoding: 'utf8', timeout: 5000 })
     const match = output.match(/version\s+"?(\d+)/i)
-    return match ? parseInt(match[1], 10) >= 17 : false
+    return match ? parseInt(match[1], 10) >= 21 : false
   } catch {
     return false
   }
@@ -61,7 +61,8 @@ function getSystemJavaCandidates(): string[] {
 }
 
 async function downloadAndSetupJava(installDir: string, onProgress?: JavaProgressCallback): Promise<string> {
-  const downloadUrl = 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.11%2B9/OpenJDK17U-jdk_x64_windows_hotspot_17.0.11_9.zip'
+  // Baixar do GitHub Releases (tag: forge)
+  const downloadUrl = 'https://github.com/DuskyBog269/InasCraftLauncher/releases/download/forge/OpenJDK21U-jdk_x64_windows_hotspot_21.0.12.1_1.zip'
 
   const runtimeDir = join(installDir, 'runtime')
   const tempFile = join(runtimeDir, 'jre-download.zip')
@@ -70,11 +71,11 @@ async function downloadAndSetupJava(installDir: string, onProgress?: JavaProgres
 
   if (existsSync(tempFile)) unlinkSync(tempFile)
 
-  console.log('[Java] Download...')
+  console.log('[Java] Download Java 21 do GitHub...')
   await downloadWithRedirects(downloadUrl, tempFile, onProgress)
 
   // Limpar pastas JDK antigas
-  const oldFolders = readdirSync(runtimeDir).filter(f => f.startsWith('jdk-17'))
+  const oldFolders = readdirSync(runtimeDir).filter(f => f.startsWith('jdk'))
   for (const folder of oldFolders) {
     rmSync(join(runtimeDir, folder), { recursive: true, force: true })
   }
@@ -93,7 +94,7 @@ async function downloadAndSetupJava(installDir: string, onProgress?: JavaProgres
   const entries = readdirSync(runtimeDir, { withFileTypes: true })
   let jdkPath: string | null = null
   for (const entry of entries) {
-    if (entry.isDirectory() && entry.name.includes('jdk-17')) {
+    if (entry.isDirectory() && entry.name.includes('jdk')) {
       jdkPath = join(runtimeDir, entry.name)
       break
     }

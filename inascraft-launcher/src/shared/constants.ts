@@ -6,8 +6,8 @@
 export const PACK_CONFIG = {
   MINECRAFT_VERSION: '1.20.1',
   MODLOADER: 'forge' as const,
-  MODLOADER_VERSION: '47.4.0', // Forge 47.4.0 para MC 1.20.1
-  JAVA_VERSION: 17
+  MODLOADER_VERSION: '47.4.28',
+  JAVA_VERSION: 21 // Forge 47.x exige Java 21
 }
 
 /** Configuração do GitHub — preencher antes de publicar */

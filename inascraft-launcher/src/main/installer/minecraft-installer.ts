@@ -103,12 +103,8 @@ export async function installForge(
 
   // Tentar múltiplas fontes para o installer JAR
   const installerUrls = [
-    // Seu GitHub Releases (confiável)
-    `https://github.com/DuskyBog269/InasCraftLauncher/releases/download/forge-${FORGE_VERSION}/forge-${MC_VERSION}-${FORGE_VERSION}-installer.jar`,
-    // Maven oficial (neoforged hospeda Forge antigo)
-    `https://maven.neoforged.net/net/minecraftforge/forge/${MC_VERSION}-${FORGE_VERSION}/forge-${MC_VERSION}-${FORGE_VERSION}-installer.jar`,
-    // Direct link alternativo
-    `https://maven.neoforged.net/net/minecraftforge/forge/${FORGE_VERSION}/forge-${FORGE_VERSION}-installer.jar`
+    // Seu GitHub Releases - tag correto
+    `https://github.com/DuskyBog269/InasCraftLauncher/releases/download/forge/forge-${MC_VERSION}-${FORGE_VERSION}-installer.jar`,
   ]
 
   let downloaded = false
@@ -154,21 +150,42 @@ export async function installForge(
   console.log('[Forge] Executando installer...')
   onProgress({ stage: 'Instalando Forge...', current: 50, total: 100 })
 
-  // Executar installer
-  const psCmd = `"${javaPath}" -jar "${installerJar}" --installClient "${installDir}"`
-  try {
-    execSync(psCmd, { stdio: 'pipe', timeout: 180000 })
-    console.log('[Forge] Installer executado com sucesso')
-  } catch (e) {
-    console.warn('[Forge] Installer pode ter falhado:', e)
+  // Criar launcher_profiles.json se não existir (Forge exige)
+  const launcherProfiles = join(installDir, 'launcher_profiles.json')
+  if (!existsSync(launcherProfiles)) {
+    const profilesJson = {
+      profiles: {
+        InasCraft: {
+          name: 'InasCraft',
+          lastVersionId: MC_VERSION,
+          javaArgs: '-Xmx2G'
+        }
+      },
+      selectedProfile: 'InasCraft',
+      clientToken: '00000000-0000-0000-0000-000000000000'
+    }
+    writeFileSync(launcherProfiles, JSON.stringify(profilesJson, null, 2))
+    console.log('[Forge] launcher_profiles.json criado')
   }
 
-  // Limpar installer
-  try { unlinkSync(installerJar) } catch { }
+  // Executar installer
+  const psCmd = `"${javaPath}" -jar "${installerJar}" --installClient "${installDir}"`
+  let installerOutput = ''
+  try {
+    installerOutput = execSync(psCmd, { stdio: ['pipe', 'pipe', 'pipe'], timeout: 180000, encoding: 'utf8' })
+    console.log('[Forge] Installer executado:', installerOutput)
+  } catch (e: any) {
+    console.warn('[Forge] Installer falhou:', e.message)
+    if (e.stdout) console.log('[Forge] stdout:', e.stdout.toString())
+    if (e.stderr) console.log('[Forge] stderr:', e.stderr.toString())
+  }
 
+  // Só limpar installer se funcionou
   if (existsSync(versionJson)) {
+    try { unlinkSync(installerJar) } catch { }
     console.log('[Forge] Instalado com sucesso')
   } else {
+    console.log('[Forge] Arquivo installer mantido para debug:', installerJar)
     throw new Error('Installer do Forge não criou os arquivos esperados')
   }
 }

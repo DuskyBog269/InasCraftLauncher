@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useElectron } from '../hooks/useElectron'
 import type { PlayerProfile, LauncherSettings, ProgressEvent, PackManifest } from '../../../shared/types'
 import { ProgressBar } from '../components/ProgressBar'
@@ -7,6 +7,14 @@ import { ChangelogModal } from '../components/ChangelogModal'
 import { CrashModal } from '../components/CrashModal'
 import { UpdateBanner } from '../components/UpdateBanner'
 import { TitleBar } from '../components/TitleBar'
+
+// Importar imagem de fundo — coloque o arquivo em src/renderer/src/assets/background.png
+let backgroundImage = ''
+try {
+  backgroundImage = new URL('../assets/background.png', import.meta.url).href
+} catch {
+  // Sem background, usa cor sólida
+}
 
 interface Props {
   profile: PlayerProfile
@@ -53,6 +61,9 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
   const [launcherUpdateInfo, setLauncherUpdateInfo] = useState<{ status: string; info?: { version: string } } | null>(null)
   const [splashText] = useState(() => SPLASH_TEXTS[Math.floor(Math.random() * SPLASH_TEXTS.length)])
 
+  // Resolver que fica pendente até o usuário confirmar ou pular o update
+  const updateResolverRef = useRef<((action: 'apply' | 'skip') => void) | null>(null)
+
   // Registrar listeners de eventos do processo principal
   useEffect(() => {
     const cleanups: Array<() => void> = []
@@ -88,6 +99,13 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
         setPendingManifest(updateData.manifest)
         setShowChangelog(true)
         setLaunchState('update-available')
+        // O handlePlay está esperando essa promise — resolver quando usuário escolher
+      } else {
+        // Sem update: resolve automaticamente como 'skip' para o handlePlay continuar
+        if (updateResolverRef.current) {
+          updateResolverRef.current('skip')
+          updateResolverRef.current = null
+        }
       }
     }))
 
@@ -103,9 +121,13 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
 
     cleanups.push(on(IPC.GAME_EXIT, (data) => {
       const { status } = data as { status: string }
-      if (status === 'closed') {
+      if (status === 'running') {
+        setLaunchState('running')
+        setStatusMessage('Jogando...')
+      } else if (status === 'closed') {
         setLaunchState('idle')
         setStatusMessage('')
+        setProgress(null)
       }
     }))
 
@@ -124,7 +146,7 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
   }, [on, IPC])
 
   const handlePlay = useCallback(async () => {
-    if (launchState !== 'idle') return
+    if (launchState !== 'idle' && launchState !== 'error') return
 
     setLaunchState('checking')
     setStatusMessage('Verificando instalação...')
@@ -132,16 +154,38 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
 
     try {
       setLaunchState('installing')
+
+      // Antes de invocar, registrar handler de update que vai pausar o fluxo
+      let updateAction: 'apply' | 'skip' | null = null
+      const updatePromise = new Promise<'apply' | 'skip'>((resolve) => {
+        updateResolverRef.current = resolve
+      })
+
+      // Disparar instalação - vai emitir PACK_CHECK_UPDATE se tiver update
       await invoke(IPC.INSTALL_START)
 
-      // Se chegou aqui sem abrir modal de changelog, pode lançar
-      if (launchState !== 'update-available') {
-        setLaunchState('launching')
-        setStatusMessage('Iniciando Minecraft...')
-        await invoke(IPC.GAME_LAUNCH)
-        setLaunchState('running')
-        setStatusMessage('Jogando...')
+      // Se chegou aqui E tem update pendente, espera o usuário decidir
+      if (updateResolverRef.current !== null) {
+        // modal já está aberto - aguarda escolha
+        updateAction = await updatePromise
+        updateResolverRef.current = null
       }
+
+      if (updateAction === 'apply') {
+        // handleApplyUpdate vai tratar download + launch
+        return
+      }
+
+      // Sem update pendente ou usuário pulou - lança direto
+      setLaunchState('launching')
+      setStatusMessage('Iniciando Minecraft...')
+      // Não aguarda o retorno do GAME_LAUNCH — o listener de GAME_EXIT cuida do estado
+      invoke(IPC.GAME_LAUNCH).catch((err: Error) => {
+        setLaunchState('error')
+        setStatusMessage(`Erro ao iniciar: ${err.message}`)
+      })
+      // Estado 'running' será setado pelo evento GAME_EXIT { status: 'running' }
+
     } catch (err) {
       setLaunchState('error')
       setStatusMessage(`Erro ao iniciar: ${(err as Error).message}`)
@@ -151,6 +195,12 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
   const handleApplyUpdate = async () => {
     if (!pendingManifest) return
     setShowChangelog(false)
+
+    // Sinaliza ao handlePlay que o usuário escolheu aplicar
+    if (updateResolverRef.current) {
+      updateResolverRef.current('apply')
+    }
+
     setLaunchState('updating')
     setStatusMessage('Atualizando modpack...')
 
@@ -160,8 +210,10 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
       setPendingManifest(null)
       setLaunchState('launching')
       setStatusMessage('Iniciando Minecraft...')
-      await invoke(IPC.GAME_LAUNCH)
-      setLaunchState('running')
+      invoke(IPC.GAME_LAUNCH).catch((err: Error) => {
+        setLaunchState('error')
+        setStatusMessage(`Erro ao iniciar: ${err.message}`)
+      })
     } catch (err) {
       setLaunchState('error')
       setStatusMessage(`Erro ao atualizar: ${(err as Error).message}`)
@@ -171,19 +223,28 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
   const handleSkipUpdate = async () => {
     setShowChangelog(false)
     setPendingManifest(null)
+
+    // Sinaliza ao handlePlay que o usuário pulou o update
+    if (updateResolverRef.current) {
+      updateResolverRef.current('skip')
+      // handlePlay vai continuar e lançar o jogo
+      return
+    }
+
+    // Fallback se chamado fora do fluxo
     setLaunchState('launching')
     setStatusMessage('Iniciando Minecraft...')
-
     try {
       await invoke(IPC.GAME_LAUNCH)
       setLaunchState('running')
+      setStatusMessage('Jogando...')
     } catch (err) {
       setLaunchState('error')
       setStatusMessage(`Erro ao iniciar: ${(err as Error).message}`)
     }
   }
 
-  const isPlayDisabled = launchState !== 'idle' && launchState !== 'error'
+  const isPlayDisabled = launchState !== 'idle' && launchState !== 'error' && launchState !== 'update-available'
 
   const getPlayButtonText = () => {
     switch (launchState) {
@@ -230,9 +291,6 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
             <div style={styles.avatar}>👤</div>
             <div>
               <div style={styles.nickName}>{profile.nick}</div>
-              <div style={styles.versionTag}>
-                {installedVersion ? `v${installedVersion}` : 'Não instalado'}
-              </div>
             </div>
           </div>
         </div>
@@ -270,7 +328,7 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
         <div style={styles.footer}>
           <ServerStatus />
           <p style={styles.footerVersion}>
-            InasCraft Launcher • MC 1.20.1 NeoForge
+            InasCraft Launcher • MC 1.20.1 Forge
           </p>
         </div>
       </div>
@@ -302,6 +360,10 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100vw',
     height: '100vh',
     background: 'var(--color-bg)',
+    backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -397,7 +459,8 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   footerVersion: {
-    color: '#444',
-    fontSize: 10,
+    color: 'var(--color-text-dim)',
+    fontSize: 11,
+    textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
   },
 }

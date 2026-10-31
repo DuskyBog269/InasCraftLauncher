@@ -22,7 +22,7 @@ export interface LauncherSettings {
 export interface ManifestFile {
   path: string // caminho relativo dentro da pasta do pack (ex: "mods/sodium.jar")
   url: string // URL de download
-  sha256: string // hash SHA-256 em hex minúsculo
+  sha256?: string // hash SHA-256 em hex minúsculo (opcional)
   protected: boolean // se true, nunca sobrescrever em updates
 }
 

@@ -66,12 +66,116 @@ export async function installMinecraft(
   }
 
   writeFileSync(clientJarJson, JSON.stringify(versionJson, null, 2))
+
+  // Baixar assets (asset index + objetos)
+  await downloadAssets(installDir, versionData.assetIndex, onProgress)
+
   console.log('[MC] Instalado')
+}
+
+/**
+ * Baixar o asset index e todos os objetos de assets do Minecraft.
+ */
+async function downloadAssets(
+  installDir: string,
+  assetIndex: { id: string; url: string },
+  onProgress: InstallProgressCallback
+): Promise<void> {
+  const assetsDir = join(installDir, 'assets')
+  const indexesDir = join(assetsDir, 'indexes')
+  const objectsDir = join(assetsDir, 'objects')
+
+  mkdirSync(indexesDir, { recursive: true })
+  mkdirSync(objectsDir, { recursive: true })
+
+  // Baixar o asset index JSON
+  const indexPath = join(indexesDir, `${assetIndex.id}.json`)
+  if (!existsSync(indexPath)) {
+    console.log(`[MC] Baixando asset index ${assetIndex.id}...`)
+    onProgress({ stage: `Baixando asset index...`, current: 0, total: 1 })
+    await downloadFile(assetIndex.url, indexPath)
+  }
+
+  // Ler o asset index e baixar os objetos
+  const indexData = JSON.parse(readFileSync(indexPath, 'utf8')) as {
+    objects: Record<string, { hash: string; size: number }>
+  }
+
+  const objects = Object.entries(indexData.objects)
+  const total = objects.length
+  let completed = 0
+  let skipped = 0
+
+  console.log(`[MC] ${total} assets para verificar...`)
+
+  // Baixar em paralelo com limite de 10 concurrent
+  const CONCURRENT = 10
+  const semaphore = { count: CONCURRENT, queue: [] as Array<() => void> }
+
+  const acquire = () => new Promise<void>((resolve) => {
+    if (semaphore.count > 0) { semaphore.count--; resolve() }
+    else { semaphore.queue.push(resolve) }
+  })
+  const release = () => {
+    const next = semaphore.queue.shift()
+    if (next) { next() } else { semaphore.count++ }
+  }
+
+  await Promise.all(
+    objects.map(async ([_name, obj]) => {
+      await acquire()
+      try {
+        const prefix = obj.hash.substring(0, 2)
+        const objDir = join(objectsDir, prefix)
+        const objPath = join(objDir, obj.hash)
+
+        if (!existsSync(objPath)) {
+          mkdirSync(objDir, { recursive: true })
+          const url = `https://resources.download.minecraft.net/${prefix}/${obj.hash}`
+          try {
+            await downloadFile(url, objPath)
+          } catch {
+            // Ignorar erro individual de asset
+          }
+        } else {
+          skipped++
+        }
+
+        completed++
+        if (completed % 100 === 0 || completed === total) {
+          onProgress({
+            stage: `Baixando assets (${completed}/${total})...`,
+            current: completed,
+            total,
+            file: `assets`
+          })
+        }
+      } finally {
+        release()
+      }
+    })
+  )
+
+  console.log(`[MC] Assets: ${completed} processados, ${skipped} já existiam`)
 }
 
 export function isMinecraftInstalled(installDir: string): boolean {
   const jar = join(installDir, 'versions', MC_VERSION, `${MC_VERSION}.jar`)
-  return existsSync(jar)
+  const jsonPath = join(installDir, 'versions', MC_VERSION, `${MC_VERSION}.json`)
+
+  if (!existsSync(jar) || !existsSync(jsonPath)) return false
+
+  // Verificar se o asset index correto existe
+  try {
+    const jsonData = JSON.parse(readFileSync(jsonPath, 'utf8'))
+    const assetId = jsonData?.assetIndex?.id
+    if (assetId) {
+      const indexFile = join(installDir, 'assets', 'indexes', `${assetId}.json`)
+      if (!existsSync(indexFile)) return false  // asset index faltando → reinstalar assets
+    }
+  } catch { /* ignorar */ }
+
+  return true
 }
 
 export function getForgeVersionString(): string {
@@ -182,11 +286,58 @@ export async function installForge(
 
   // Só limpar installer se funcionou
   if (existsSync(versionJson)) {
+    // Adicionar argumentos JVM necessários para Java 17 + Forge 47.x
+    console.log('[Forge] Adicionando argumentos JVM...')
+    patchForgeVersionJson(versionJson)
+
     try { unlinkSync(installerJar) } catch { }
     console.log('[Forge] Instalado com sucesso')
   } else {
     console.log('[Forge] Arquivo installer mantido para debug:', installerJar)
     throw new Error('Installer do Forge não criou os arquivos esperados')
+  }
+}
+
+/** Adicionar --add-opens ao version.json do Forge para Java 17 */
+function patchForgeVersionJson(versionJsonPath: string): void {
+  if (!existsSync(versionJsonPath)) return
+
+  try {
+    const content = readFileSync(versionJsonPath, 'utf8')
+    const versionData = JSON.parse(content)
+
+    // Argumentos JVM necessários para Forge 47.x com Java 17
+    const jvmArgs = [
+      '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED',
+      '--add-opens=java.base/java.lang=ALL-UNNAMED',
+      '--add-opens=java.base/java.io=ALL-UNNAMED',
+      '--add-opens=java.base/java.nio=ALL-UNNAMED',
+      '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED',
+      '--add-opens=java.base/sun.security.util=ALL-UNNAMED',
+      '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+      '--add-opens=java.base/java.util=ALL-UNNAMED'
+    ]
+
+    // Inicializar estrutura arguments se necessário
+    if (!versionData.arguments) {
+      versionData.arguments = { game: [], jvm: [] }
+    }
+    if (!versionData.arguments.jvm) {
+      versionData.arguments.jvm = []
+    }
+
+    // Adicionar argumentos que ainda não existem
+    for (const arg of jvmArgs) {
+      if (!versionData.arguments.jvm.includes(arg)) {
+        versionData.arguments.jvm.push(arg)
+      }
+    }
+
+    writeFileSync(versionJsonPath, JSON.stringify(versionData, null, 2))
+    console.log('[Forge] version.json atualizado com --add-opens')
+    console.log('[Forge] JVM args:', versionData.arguments.jvm)
+  } catch (e) {
+    console.warn('[Forge] Falha ao patchear version.json:', (e as Error).message)
   }
 }
 

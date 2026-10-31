@@ -1,4 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron'
+import { existsSync, readdirSync } from 'fs'
+import { join } from 'path'
 import { IPC } from '../../shared/ipc-channels'
 import { store, getInstallDir } from '../store'
 import { resolveJava } from '../installer/java-manager'
@@ -45,11 +47,18 @@ export function registerInstallHandlers(mainWindow: BrowserWindow): void {
 
       if (manifest) {
         const installedVersion = store.get('installedVersion') as string | undefined
-        const isFirstInstall = !installedVersion
+        const modsDir = join(installDir, 'mods')
 
-        if (isFirstInstall || installedVersion !== manifest.version) {
+        // Considerar instalado só se a versão bate E a pasta mods tem arquivos
+        const modsExist = existsSync(modsDir) &&
+          readdirSync(modsDir).filter(f => f.endsWith('.jar')).length > 0
+        const isUpToDate = installedVersion === manifest.version && modsExist
+
+        if (!isUpToDate) {
           mainWindow.webContents.send(IPC.PACK_CHECK_UPDATE, {
-            hasUpdate: true, manifest, isFirstInstall
+            hasUpdate: !!installedVersion,  // true = update, false = primeira instalação
+            isFirstInstall: !installedVersion,
+            manifest
           })
         } else {
           mainWindow.webContents.send(IPC.PACK_CHECK_UPDATE, {

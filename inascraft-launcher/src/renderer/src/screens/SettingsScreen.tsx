@@ -273,7 +273,7 @@ export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUp
         {/* ── Sobre ─────────────────────────────────────────── */}
         <section className="mc-panel" style={{ ...styles.section, fontSize: 11, color: '#666' }}>
           <strong style={{ color: '#888' }}>InasCraft Launcher</strong> v{appVersion || '?'} •
-          Minecraft 1.20.1 NeoForge •{' '}
+          Minecraft 1.20.1 Forge •{' '}
           <span style={{ color: '#444' }}>UUID: {profile.uuid}</span>
         </section>
       </div>

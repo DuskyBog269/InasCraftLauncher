@@ -85,16 +85,16 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/BCLib-20.0.16-forge.jar"
     },
     {
-      "path": "mods/BetterEnd-0.0.12-Forge-1.20.1.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/BetterEnd-0.0.12-Forge-1.20.1.jar"
+      "path": "mods/BetterEnd-20.0.13-forge.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/BetterEnd-20.0.13-forge.jar"
     },
     {
       "path": "mods/BetterF3-7.0.2-Forge-1.20.1.jar",
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/BetterF3-7.0.2-Forge-1.20.1.jar"
     },
     {
-      "path": "mods/BetterThirdPerson-Forge-1.20.1-1.9.0.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/BetterThirdPerson-Forge-1.20.1-1.9.0.jar"
+      "path": "mods/BetterThirdPerson-Forge-1.20-1.9.0.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/BetterThirdPerson-Forge-1.20-1.9.0.jar"
     },
     {
       "path": "mods/blue_skies-1.20.1-1.3.31.jar",
@@ -201,8 +201,8 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/CreativeCore_FORGE_v2.12.40_mc1.20.1.jar"
     },
     {
-      "path": "mods/Cucumber-Forge-1.20.1-7.0.6.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Cucumber-Forge-1.20.1-7.0.6.jar"
+      "path": "mods/Cucumber-1.20.1-7.0.16.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Cucumber-1.20.1-7.0.16.jar"
     },
     {
       "path": "mods/curios-forge-5.14.1+1.20.1.jar",
@@ -217,20 +217,20 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Data_Anchor-forge-1.20.1-1.0.0.24.jar"
     },
     {
-      "path": "mods/dummmmmmy-1.20.1-2.0.12-forge.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/dummmmmmy-1.20.1-2.0.12-forge.jar"
+      "path": "mods/dummmmmmy-1.20-2.0.12-forge.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/dummmmmmy-1.20-2.0.12-forge.jar"
     },
     {
-      "path": "mods/DungeonCrawl-1.20.1-2.3.15.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/DungeonCrawl-1.20.1-2.3.15.jar"
+      "path": "mods/Dungeon.Crawl-1.20.1-2.3.15.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Dungeon.Crawl-1.20.1-2.3.15.jar"
     },
     {
       "path": "mods/DungeonsArise-1.20.x-2.1.58-release.jar",
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/DungeonsArise-1.20.x-2.1.58-release.jar"
     },
     {
-      "path": "mods/EasyPaper1.0.0-1.20.1.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/EasyPaper1.0.0-1.20.1.jar"
+      "path": "mods/Easy.Paper.1.0.0.-.1.20.1.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Easy.Paper.1.0.0.-.1.20.1.jar"
     },
     {
       "path": "mods/easy-piglins-forge-1.20.1-1.0.13.jar",
@@ -257,8 +257,8 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/EnderStorage-1.20.1-2.11.0.188-universal.jar"
     },
     {
-      "path": "mods/EnhancedCelestials-forge-1.20.1-5.0.3.3.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/EnhancedCelestials-forge-1.20.1-5.0.3.3.jar"
+      "path": "mods/Enhanced-Celestials-forge-1.20.1-5.0.3.3.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Enhanced-Celestials-forge-1.20.1-5.0.3.3.jar"
     },
     {
       "path": "mods/ExplorersCompass-1.20.1-1.4.0-forge.jar",
@@ -317,32 +317,32 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/gravestone-forge-1.20.1-1.0.35.jar"
     },
     {
-      "path": "mods/guideme-2.0.1.15.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/guideme-2.0.1.15.jar"
+      "path": "mods/guideme-20.1.15.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/guideme-20.1.15.jar"
     },
     {
       "path": "mods/HatsRenewed-20.1.2-mc1.20.1-forge.jar",
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/HatsRenewed-20.1.2-mc1.20.1-forge.jar"
     },
     {
-      "path": "mods/Highlighter-forge-1.20.1-1.1.9.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Highlighter-forge-1.20.1-1.1.9.jar"
+      "path": "mods/Highlighter-1.20.1-forge-1.1.9.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Highlighter-1.20.1-forge-1.1.9.jar"
     },
     {
-      "path": "mods/howlingwolves-1.20.1-1.0.3-forge.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/howlingwolves-1.20.1-1.0.3-forge.jar"
+      "path": "mods/howlingwerewolf-1.1.3-forge.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/howlingwerewolf-1.1.3-forge.jar"
     },
     {
-      "path": "mods/iceandfire-1.20.1-1.1.1-beta-5.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/iceandfire-1.20.1-1.1.1-beta-5.jar"
+      "path": "mods/iceandfire-2.1.13-1.20.1-beta-5.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/iceandfire-2.1.13-1.20.1-beta-5.jar"
     },
     {
-      "path": "mods/Iceberg-1.20.1-1.1.25.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Iceberg-1.20.1-1.1.25.jar"
+      "path": "mods/Iceberg-1.20.1-forge-1.1.25.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Iceberg-1.20.1-forge-1.1.25.jar"
     },
     {
-      "path": "mods/IgleesLibrary-1.20.1-1.2.7.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/IgleesLibrary-1.20.1-1.2.7.jar"
+      "path": "mods/Iglee.s.Library-1.20.1-1.2.7.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Iglee.s.Library-1.20.1-1.2.7.jar"
     },
     {
       "path": "mods/ImmersiveEngineering-1.20.1-10.2.0-183.jar",
@@ -369,16 +369,16 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/ironfurnaces-1.20.1-4.1.8.jar"
     },
     {
-      "path": "mods/Jade-1.20.1-forge-11.1.3.3.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Jade-1.20.1-forge-11.1.3.3.jar"
+      "path": "mods/Jade-1.20.1-Forge-11.13.3.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Jade-1.20.1-Forge-11.13.3.jar"
     },
     {
-      "path": "mods/JadeAddons-1.20.1-forge-5.5.1.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/JadeAddons-1.20.1-forge-5.5.1.jar"
+      "path": "mods/JadeAddons-1.20.1-Forge-5.5.1.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/JadeAddons-1.20.1-Forge-5.5.1.jar"
     },
     {
-      "path": "mods/jei-1.20.1-forge-15.7.4.0.232.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/jei-1.20.1-forge-15.7.4.0.232.jar"
+      "path": "mods/jei-1.20.1-forge-15.74.0.232.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/jei-1.20.1-forge-15.74.0.232.jar"
     },
     {
       "path": "mods/journeymap-forge-1.20.1-6.0.7.jar",
@@ -397,8 +397,8 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/JustEnoughResources-1.20.1-1.4.0.247.jar"
     },
     {
-      "path": "mods/L_Enders_Cataclysm-1.20.1-3.31.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/L_Enders_Cataclysm-1.20.1-3.31.jar"
+      "path": "mods/L_Enders_Cataclysm-3.31.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/L_Enders_Cataclysm-3.31.jar"
     },
     {
       "path": "mods/LegendaryTooltips-1.20.1-forge-1.4.5.jar",
@@ -413,8 +413,8 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/lootr-forge-1.20-0.7.35.94.jar"
     },
     {
-      "path": "mods/Mantle-1.20.1-1.11.11.7.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Mantle-1.20.1-1.11.11.7.jar"
+      "path": "mods/Mantle-1.20.1-1.11.117.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Mantle-1.20.1-1.11.117.jar"
     },
     {
       "path": "mods/Mekanism-1.20.1-10.4.16.80.jar",
@@ -429,12 +429,12 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/MekanismTools-1.20.1-10.4.16.80.jar"
     },
     {
-      "path": "mods/mezz_config_gui-1.20.1-forge-mc1.20.1-0.5.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/mezz_config_gui-1.20.1-forge-mc1.20.1-0.5.jar"
+      "path": "mods/mezz_config_gui-1.20.1-forge-mc1.20.1-0.5.11.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/mezz_config_gui-1.20.1-forge-mc1.20.1-0.5.11.jar"
     },
     {
-      "path": "mods/mezz_mod_library-1.20.1-forge-0.6.10.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/mezz_mod_library-1.20.1-forge-0.6.10.jar"
+      "path": "mods/mezz_config-1.20.1-forge-0.6.10.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/mezz_config-1.20.1-forge-0.6.10.jar"
     },
     {
       "path": "mods/mob_grinding_utils-1.20.1-1.1.0.jar",
@@ -453,8 +453,8 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/MouseTweaks-forge-mc1.20.1-2.25.1.jar"
     },
     {
-      "path": "mods/mowziesmobs-1.20.1-2.0.1.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/mowziesmobs-1.20.1-2.0.1.jar"
+      "path": "mods/mowziesmobs-1.8.2.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/mowziesmobs-1.8.2.jar"
     },
     {
       "path": "mods/MysticalAgradditions-1.20.1-7.0.12.jar",
@@ -485,8 +485,8 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Patchouli-1.20.1-85-FORGE.jar"
     },
     {
-      "path": "mods/PigPen-Forge-1.20.1-5.0.3.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/PigPen-Forge-1.20.1-5.0.3.jar"
+      "path": "mods/PigPen-Forge-1.20.1-15.0.3.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/PigPen-Forge-1.20.1-15.0.3.jar"
     },
     {
       "path": "mods/pipez-forge-1.20.1-1.2.26.jar",
@@ -549,28 +549,28 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/skinrestorer-2.11.0+1.20-forge.jar"
     },
     {
-      "path": "mods/sophisticatedbackpacks-1.20.1-3.26.18.223.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/sophisticatedbackpacks-1.20.1-3.26.18.223.jar"
+      "path": "mods/sophisticatedbackpacks-1.20.1-3.26.18.2237.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/sophisticatedbackpacks-1.20.1-3.26.18.2237.jar"
     },
     {
-      "path": "mods/sophisticatedcore-1.20.1-5.19.2441.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/sophisticatedcore-1.20.1-5.19.2441.jar"
+      "path": "mods/sophisticatedcore-1.20.1-1.5.19.2441.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/sophisticatedcore-1.20.1-1.5.19.2441.jar"
     },
     {
       "path": "mods/sophisticatedstorage-1.20.1-1.5.11.2210.jar",
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/sophisticatedstorage-1.20.1-1.5.11.2210.jar"
     },
     {
-      "path": "mods/StorageDrawers-forge-1.20.1-12.1.5.1.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/StorageDrawers-forge-1.20.1-12.1.5.1.jar"
+      "path": "mods/StorageDrawers-forge-1.20.1-12.15.1.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/StorageDrawers-forge-1.20.1-12.15.1.jar"
     },
     {
       "path": "mods/structure_gel-1.20.1-2.16.2.jar",
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/structure_gel-1.20.1-2.16.2.jar"
     },
     {
-      "path": "mods/supermartijn642configlib-1.1.8-forge-mc1.20.1.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/supermartijn642configlib-1.1.8-forge-mc1.20.1.jar"
+      "path": "mods/supermartijn642configlib-1.1.8-forge-mc1.20.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/supermartijn642configlib-1.1.8-forge-mc1.20.jar"
     },
     {
       "path": "mods/supermartijn642corelib-1.1.26-forge-mc1.20.1.jar",
@@ -609,12 +609,12 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/thermal_innovation-1.20.1-11.0.1.23.jar"
     },
     {
-      "path": "mods/TinkersReforged-1.20.1-2.20.0.7.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/TinkersReforged-1.20.1-2.20.0.7.jar"
+      "path": "mods/Tinkers.Reforged.1.20.1-2.20.0.7.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Tinkers.Reforged.1.20.1-2.20.0.7.jar"
     },
     {
-      "path": "mods/tinkersjewelery-1.20.1-2.0.0.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/tinkersjewelery-1.20.1-2.0.0.jar"
+      "path": "mods/tinkersjewelry-1.2.0.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/tinkersjewelry-1.2.0.jar"
     },
     {
       "path": "mods/TinkersLevellingAddon-1.20.1-1.5.0.jar",
@@ -673,8 +673,8 @@
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/YungsBetterDungeons-1.20-Forge-4.0.4.jar"
     },
     {
-      "path": "mods/YungsBetterJungleTemples-1.20-Forge-2.0.4.jar",
-      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/YungsBetterJungleTemples-1.20-Forge-2.0.4.jar"
+      "path": "mods/YungsBetterJungleTemples-1.20-Forge-2.0.5.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/YungsBetterJungleTemples-1.20-Forge-2.0.5.jar"
     },
     {
       "path": "mods/YungsBetterMineshafts-1.20-Forge-4.0.4.jar",

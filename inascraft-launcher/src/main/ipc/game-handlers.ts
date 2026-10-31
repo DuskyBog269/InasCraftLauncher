@@ -73,8 +73,17 @@ export function registerGameHandlers(mainWindow: BrowserWindow): void {
       mainWindow.restore()
       mainWindow.focus()
       throw err
+    } finally {
+      // Garantir que gameRunning seja resetado
+      gameRunning = false
     }
 
+    return { success: true }
+  })
+
+  /** Resetar estado (para debug/testing) */
+  ipcMain.handle('game:reset-state', () => {
+    gameRunning = false
     return { success: true }
   })
 }

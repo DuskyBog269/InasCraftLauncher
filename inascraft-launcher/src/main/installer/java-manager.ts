@@ -11,7 +11,7 @@ function checkJavaVersion(javaExe: string): boolean {
   try {
     const output = execSync(`"${javaExe}" -version 2>&1`, { encoding: 'utf8', timeout: 5000 })
     const match = output.match(/version\s+"?(\d+)/i)
-    return match ? parseInt(match[1], 10) >= 21 : false
+    return match ? parseInt(match[1], 10) >= 17 : false
   } catch {
     return false
   }
@@ -62,7 +62,7 @@ function getSystemJavaCandidates(): string[] {
 
 async function downloadAndSetupJava(installDir: string, onProgress?: JavaProgressCallback): Promise<string> {
   // Baixar do GitHub Releases (tag: forge)
-  const downloadUrl = 'https://github.com/DuskyBog269/InasCraftLauncher/releases/download/forge/OpenJDK21U-jdk_x64_windows_hotspot_21.0.12.1_1.zip'
+  const downloadUrl = 'https://github.com/DuskyBog269/InasCraftLauncher/releases/download/forge/OpenJDK17U-jdk_x64_windows_hotspot_17.0.20.1_1.zip'
 
   const runtimeDir = join(installDir, 'runtime')
   const tempFile = join(runtimeDir, 'jre-download.zip')

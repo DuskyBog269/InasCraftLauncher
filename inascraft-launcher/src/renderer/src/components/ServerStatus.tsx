@@ -100,14 +100,16 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   label: {
-    color: 'var(--color-text-dim)',
+    color: 'var(--color-text)',
+    textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
   },
   refreshBtn: {
     background: 'transparent',
     border: 'none',
-    color: '#555',
+    color: 'var(--color-text-dim)',
     cursor: 'pointer',
     fontSize: 12,
     padding: '0 2px',
+    textShadow: '1px 1px 0 #000',
   },
 }

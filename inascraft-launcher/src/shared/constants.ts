@@ -7,22 +7,26 @@ export const PACK_CONFIG = {
   MINECRAFT_VERSION: '1.20.1',
   MODLOADER: 'forge' as const,
   MODLOADER_VERSION: '47.4.28',
-  JAVA_VERSION: 21 // Forge 47.x exige Java 21
+  JAVA_VERSION: 17
 }
 
-/** Configuração do GitHub — preencher antes de publicar */
+/** Configuração do GitHub — manifestar downloads */
 export const GITHUB_CONFIG = {
   USER: 'DuskyBog269',
   REPO: 'InasCraftLauncher',
-  /** URL base para o manifest.json na última release */
+  /** URL do manifest.json (tag: manifest) */
   get MANIFEST_URL() {
-    return `https://github.com/${this.USER}/${this.REPO}/releases/latest/download/manifest.json`
+    return `https://github.com/${this.USER}/${this.REPO}/releases/download/manifest/manifest.json`
+  },
+  /** URL base para mods */
+  get MODS_URL() {
+    return `https://github.com/${this.USER}/${this.REPO}/releases/download/mods/`
   }
 }
 
 /** Configuração do servidor de jogo (preencher quando disponível) */
 export const SERVER_CONFIG = {
-  IP: 'YOUR_SERVER_IP',
+  IP: 'governors-varmint.tun.ply.gg',
   PORT: 25565
 }
 

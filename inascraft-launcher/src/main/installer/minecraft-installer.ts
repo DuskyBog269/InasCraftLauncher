@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, createWriteStream, unlinkSync, writeFileSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import http from 'http'
 import https from 'https'
@@ -67,10 +67,69 @@ export async function installMinecraft(
 
   writeFileSync(clientJarJson, JSON.stringify(versionJson, null, 2))
 
+  // Baixar libraries do vanilla (log4j, netty, lwjgl, etc.)
+  await downloadLibraries(installDir, versionData.libraries as any[], onProgress)
+
   // Baixar assets (asset index + objetos)
   await downloadAssets(installDir, versionData.assetIndex, onProgress)
 
   console.log('[MC] Instalado')
+}
+
+/**
+ * Baixar todas as libraries do vanilla Minecraft.
+ */
+async function downloadLibraries(
+  installDir: string,
+  libraries: Array<{ downloads?: { artifact?: { path: string; url: string; sha1?: string } }; rules?: unknown[] }>,
+  onProgress: InstallProgressCallback
+): Promise<void> {
+  const libDir = join(installDir, 'libraries')
+  const toDownload = libraries.filter(lib => lib.downloads?.artifact?.url)
+
+  let completed = 0
+  const total = toDownload.length
+
+  console.log(`[MC] Baixando ${total} libraries...`)
+
+  const CONCURRENT = 8
+  const semaphore = { count: CONCURRENT, queue: [] as Array<() => void> }
+  const acquire = () => new Promise<void>((resolve) => {
+    if (semaphore.count > 0) { semaphore.count--; resolve() }
+    else { semaphore.queue.push(resolve) }
+  })
+  const release = () => {
+    const next = semaphore.queue.shift()
+    if (next) { next() } else { semaphore.count++ }
+  }
+
+  await Promise.all(
+    toDownload.map(async (lib) => {
+      await acquire()
+      try {
+        const artifact = lib.downloads!.artifact!
+        const destPath = join(libDir, artifact.path)
+
+        if (!existsSync(destPath)) {
+          mkdirSync(dirname(destPath), { recursive: true })
+          try {
+            await downloadFile(artifact.url, destPath)
+          } catch (e) {
+            console.warn('[MC] Library falhou:', artifact.path, (e as Error).message)
+          }
+        }
+
+        completed++
+        if (completed % 20 === 0 || completed === total) {
+          onProgress({ stage: `Baixando libraries (${completed}/${total})...`, current: completed, total })
+        }
+      } finally {
+        release()
+      }
+    })
+  )
+
+  console.log('[MC] Libraries baixadas')
 }
 
 /**
@@ -171,8 +230,12 @@ export function isMinecraftInstalled(installDir: string): boolean {
     const assetId = jsonData?.assetIndex?.id
     if (assetId) {
       const indexFile = join(installDir, 'assets', 'indexes', `${assetId}.json`)
-      if (!existsSync(indexFile)) return false  // asset index faltando → reinstalar assets
+      if (!existsSync(indexFile)) return false
     }
+
+    // Verificar se ao menos o log4j-core está presente (dependência crítica do Forge)
+    const log4jPath = join(installDir, 'libraries', 'org', 'apache', 'logging', 'log4j', 'log4j-core')
+    if (!existsSync(log4jPath)) return false
   } catch { /* ignorar */ }
 
   return true

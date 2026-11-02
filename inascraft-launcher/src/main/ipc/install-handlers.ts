@@ -1,6 +1,4 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { existsSync, readdirSync } from 'fs'
-import { join } from 'path'
 import { IPC } from '../../shared/ipc-channels'
 import { store, getInstallDir } from '../store'
 import { resolveJava } from '../installer/java-manager'
@@ -47,16 +45,18 @@ export function registerInstallHandlers(mainWindow: BrowserWindow): void {
 
       if (manifest) {
         const installedVersion = store.get('installedVersion') as string | undefined
-        const modsDir = join(installDir, 'mods')
 
-        // Considerar instalado só se a versão bate E a pasta mods tem arquivos
-        const modsExist = existsSync(modsDir) &&
-          readdirSync(modsDir).filter(f => f.endsWith('.jar')).length > 0
-        const isUpToDate = installedVersion === manifest.version && modsExist
+        // Sempre rodar o diff para detectar arquivos faltando,
+        // independente da versão salva no store
+        const { toDownload, toDelete } = diffManifest(installDir, manifest)
+        const versionChanged = installedVersion !== manifest.version
+        const hasFileDiff = toDownload.length > 0 || toDelete.length > 0
 
-        if (!isUpToDate) {
+        console.log(`[Install] Pack: versão local=${installedVersion}, remota=${manifest.version}, faltando=${toDownload.length}, deletar=${toDelete.length}`)
+
+        if (versionChanged || hasFileDiff) {
           mainWindow.webContents.send(IPC.PACK_CHECK_UPDATE, {
-            hasUpdate: !!installedVersion,  // true = update, false = primeira instalação
+            hasUpdate: !!installedVersion,
             isFirstInstall: !installedVersion,
             manifest
           })

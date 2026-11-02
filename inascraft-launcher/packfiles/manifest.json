@@ -703,6 +703,18 @@
     {
       "path": "mods/Zeta-1.0-31.jar",
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Zeta-1.0-31.jar"
+    },
+    {
+      "path": "mods/polymorph-forge-0.49.11+1.20.1.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/polymorph-forge-0.49.11+1.20.1.jar"
+    },
+    {
+      "path": "mods/jamd-forge-3.4.2+mc1.20.1.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/jamd-forge-3.4.2+mc1.20.1.jar"
+    },
+    {
+      "path": "mods/trenzalore-forge-3.3.10+mc1.20.1-all.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/trenzalore-forge-3.3.10+mc1.20.1-all.jar"
     }
   ]
 }

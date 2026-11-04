@@ -59,7 +59,23 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
   const [showChangelog, setShowChangelog] = useState(false)
   const [crashData, setCrashData] = useState<{ log: string; logPath: string } | null>(null)
   const [launcherUpdateInfo, setLauncherUpdateInfo] = useState<{ status: string; info?: { version: string } } | null>(null)
+  const [avatarError, setAvatarError] = useState(false)
+  const [autoConnect, setAutoConnect] = useState<boolean>(() => {
+    return localStorage.getItem('inascraft:autoConnect') !== 'false'
+  })
   const [splashText] = useState(() => SPLASH_TEXTS[Math.floor(Math.random() * SPLASH_TEXTS.length)])
+
+  const toggleAutoConnect = () => {
+    setAutoConnect((prev) => {
+      const next = !prev
+      localStorage.setItem('inascraft:autoConnect', String(next))
+      return next
+    })
+  }
+
+  useEffect(() => {
+    setAvatarError(false)
+  }, [profile.nick])
 
   // Resolver que fica pendente até o usuário confirmar ou pular o update
   const updateResolverRef = useRef<((action: 'apply' | 'skip') => void) | null>(null)
@@ -180,7 +196,7 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
       setLaunchState('launching')
       setStatusMessage('Iniciando Minecraft...')
       // Não aguarda o retorno do GAME_LAUNCH — o listener de GAME_EXIT cuida do estado
-      invoke(IPC.GAME_LAUNCH).catch((err: Error) => {
+      invoke(IPC.GAME_LAUNCH, { autoConnect }).catch((err: Error) => {
         setLaunchState('error')
         setStatusMessage(`Erro ao iniciar: ${err.message}`)
       })
@@ -190,7 +206,7 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
       setLaunchState('error')
       setStatusMessage(`Erro ao iniciar: ${(err as Error).message}`)
     }
-  }, [launchState, invoke, IPC])
+  }, [launchState, invoke, IPC, autoConnect])
 
   const handleApplyUpdate = async () => {
     if (!pendingManifest) return
@@ -210,7 +226,7 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
       setPendingManifest(null)
       setLaunchState('launching')
       setStatusMessage('Iniciando Minecraft...')
-      invoke(IPC.GAME_LAUNCH).catch((err: Error) => {
+      invoke(IPC.GAME_LAUNCH, { autoConnect }).catch((err: Error) => {
         setLaunchState('error')
         setStatusMessage(`Erro ao iniciar: ${err.message}`)
       })
@@ -235,7 +251,7 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
     setLaunchState('launching')
     setStatusMessage('Iniciando Minecraft...')
     try {
-      await invoke(IPC.GAME_LAUNCH)
+      await invoke(IPC.GAME_LAUNCH, { autoConnect })
       setLaunchState('running')
       setStatusMessage('Jogando...')
     } catch (err) {
@@ -287,8 +303,17 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
             <p style={styles.splashText}>{splashText}</p>
           </div>
 
-          <div style={styles.profileBadge}>
-            <div style={styles.avatar}>👤</div>
+          <div style={styles.profileBadge} onClick={onOpenSettings} title="Configurações do perfil">
+            {!avatarError ? (
+              <img
+                src={`https://mc-heads.net/avatar/${encodeURIComponent(profile.nick)}/32`}
+                alt={profile.nick}
+                style={styles.avatarImg}
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <div style={styles.avatar}>👤</div>
+            )}
             <div>
               <div style={styles.nickName}>{profile.nick}</div>
             </div>
@@ -305,6 +330,25 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
           >
             {getPlayButtonText()}
           </button>
+
+          {/* Opção de entrar direto no servidor */}
+          <label
+            onClick={!isPlayDisabled ? toggleAutoConnect : undefined}
+            style={{
+              ...styles.autoConnectToggle,
+              opacity: isPlayDisabled ? 0.6 : 1,
+              cursor: isPlayDisabled ? 'default' : 'pointer'
+            }}
+          >
+            <span style={{
+              ...styles.checkbox,
+              background: autoConnect ? 'var(--color-grass)' : '#1a1a1a',
+              borderColor: autoConnect ? '#7ec850' : '#555'
+            }}>
+              {autoConnect ? '✓' : ''}
+            </span>
+            <span>Entrar direto no servidor ao abrir</span>
+          </label>
 
           {/* Barra de progresso */}
           {progress && (
@@ -412,13 +456,21 @@ const styles: Record<string, React.CSSProperties> = {
   profileBadge: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     background: 'var(--color-panel)',
     padding: '8px 12px',
     border: '1px solid var(--color-border)',
+    cursor: 'pointer',
   },
   avatar: {
     fontSize: 24,
+  },
+  avatarImg: {
+    width: 28,
+    height: 28,
+    imageRendering: 'pixelated',
+    border: '1px solid #000',
+    display: 'block',
   },
   nickName: {
     color: 'var(--color-text)',
@@ -443,6 +495,30 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '16px 48px',
     fontSize: 22,
     letterSpacing: 2,
+  },
+  autoConnectToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 12,
+    color: 'var(--color-text)',
+    background: 'rgba(18, 18, 18, 0.78)',
+    padding: '6px 12px',
+    border: '1px solid var(--color-border)',
+    userSelect: 'none',
+    textShadow: '1px 1px 0 #000',
+  },
+  checkbox: {
+    width: 14,
+    height: 14,
+    border: '1px solid #555',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 10,
+    color: '#fff',
+    fontWeight: 'bold',
+    lineHeight: 1,
   },
   progressSection: {
     width: '100%',

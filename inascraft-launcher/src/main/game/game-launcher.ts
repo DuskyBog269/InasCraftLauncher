@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, appendFileSync, readFileSync } from 'fs'
+import { existsSync, mkdirSync, appendFileSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import type { PlayerProfile } from '../../shared/types'
-import { PACK_CONFIG } from '../../shared/constants'
+import { PACK_CONFIG, SERVER_CONFIG } from '../../shared/constants'
 
 export type GameEventCallback = (event: 'start' | 'exit' | 'crash', data?: unknown) => void
 
@@ -22,10 +22,13 @@ export async function launchGame(
   profile: PlayerProfile,
   ramMb: number,
   onEvent: GameEventCallback,
-  onLog: (line: string) => void
+  onLog: (line: string) => void,
+  autoConnect = false
 ): Promise<void> {
   const logsDir = join(installDir, 'launcher-logs')
   mkdirSync(logsDir, { recursive: true })
+  cleanupOldLogs(logsDir, 10)
+  ensureServersDat(installDir)
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
   gameLogPath = join(logsDir, `game-${timestamp}.log`)
@@ -53,7 +56,7 @@ export async function launchGame(
   console.log('[Game] JVM args count:', jvmArgs.length)
 
   // Construir argumentos do jogo
-  const gameArgs = buildGameArgs(versionData, profile, versionString, installDir, assetIndexId)
+  const gameArgs = buildGameArgs(versionData, profile, versionString, installDir, assetIndexId, autoConnect)
 
   // Construir classpath
   const classpath = buildClasspath(versionData, installDir)
@@ -144,9 +147,31 @@ export function stopGame(): void {
 function buildJvmArgs(versionData: any, installDir: string, ramMb: number): string[] {
   const args: string[] = []
 
-  // Memoria
+  // Memória (pré-aloca no mínimo 1GB ou 2GB para evitar redimensionamentos de heap no carregamento)
+  const initialRamMb = Math.min(ramMb, ramMb >= 4096 ? 2048 : 1024)
   args.push(`-Xmx${ramMb}M`)
-  args.push(`-Xms512M`)
+  args.push(`-Xms${initialRamMb}M`)
+
+  // Flags de otimização de Garbage Collector (G1GC / Aikar's Flags adaptadas para Modpacks Forge)
+  args.push(
+    '-XX:+UnlockExperimentalVMOptions',
+    '-XX:+UseG1GC',
+    '-XX:+ParallelRefProcEnabled',
+    '-XX:MaxGCPauseMillis=50',
+    '-XX:+DisableExplicitGC',
+    '-XX:+AlwaysPreTouch',
+    '-XX:G1NewSizePercent=20',
+    '-XX:G1MaxNewSizePercent=40',
+    '-XX:G1HeapRegionSize=32M',
+    '-XX:G1ReservePercent=20',
+    '-XX:G1HeapWastePercent=5',
+    '-XX:G1MixedGCCountTarget=4',
+    '-XX:InitiatingHeapOccupancyPercent=15',
+    '-XX:G1MixedGCLiveThresholdPercent=90',
+    '-XX:SurvivorRatio=32',
+    '-XX:+PerfDisableSharedMem',
+    '-Dfml.readTimeout=180'
+  )
 
   // Extrair argumentos JVM do version.json
   const jvmArgList = versionData.arguments?.jvm || []
@@ -197,7 +222,14 @@ function buildJvmArgs(versionData: any, installDir: string, ramMb: number): stri
 }
 
 /** Construir argumentos do jogo */
-function buildGameArgs(versionData: any, profile: PlayerProfile, versionString: string, installDir: string, assetIndexId: string): string[] {
+function buildGameArgs(
+  versionData: any,
+  profile: PlayerProfile,
+  versionString: string,
+  installDir: string,
+  assetIndexId: string,
+  autoConnect = false
+): string[] {
   const args: string[] = []
 
   // Argumentos padrão do Minecraft
@@ -230,6 +262,11 @@ function buildGameArgs(versionData: any, profile: PlayerProfile, versionString: 
   args.push('--width', '854')
   args.push('--height', '480')
   args.push('--fullscreen', 'false')
+
+  // Quick Play (conectar direto ao servidor no Minecraft 1.20+)
+  if (autoConnect && SERVER_CONFIG.IP && SERVER_CONFIG.IP !== 'YOUR_SERVER_IP') {
+    args.push('--quickPlayMultiplayer', `${SERVER_CONFIG.IP}:${SERVER_CONFIG.PORT}`)
+  }
 
   return args
 }
@@ -308,5 +345,71 @@ function getLastLogLines(n: number): string {
     return lines.slice(Math.max(0, lines.length - n)).join('\n')
   } catch {
     return ''
+  }
+}
+
+/** Manter apenas os N arquivos de log mais recentes */
+function cleanupOldLogs(logsDir: string, keepCount: number): void {
+  try {
+    const files = readdirSync(logsDir)
+      .filter((f) => f.startsWith('game-') && f.endsWith('.log'))
+      .sort()
+    if (files.length >= keepCount) {
+      const toRemove = files.slice(0, files.length - keepCount + 1)
+      for (const file of toRemove) {
+        try { unlinkSync(join(logsDir, file)) } catch { /* ignorar */ }
+      }
+    }
+  } catch { /* ignorar */ }
+}
+
+/**
+ * Criar servers.dat (formato NBT não-comprimido do Minecraft) caso ainda não exista,
+ * para que o servidor oficial do InasCraft já apareça na lista de Multiplayer.
+ */
+function ensureServersDat(installDir: string): void {
+  if (!SERVER_CONFIG.IP || SERVER_CONFIG.IP === 'YOUR_SERVER_IP') return
+  const serversDatPath = join(installDir, 'servers.dat')
+  if (existsSync(serversDatPath)) return
+
+  try {
+    const writeNbtString = (str: string): Buffer => {
+      const strBuf = Buffer.from(str, 'utf8')
+      const lenBuf = Buffer.alloc(2)
+      lenBuf.writeUInt16BE(strBuf.length, 0)
+      return Buffer.concat([lenBuf, strBuf])
+    }
+
+    const serverAddress = SERVER_CONFIG.PORT === 25565
+      ? SERVER_CONFIG.IP
+      : `${SERVER_CONFIG.IP}:${SERVER_CONFIG.PORT}`
+
+    const parts: Buffer[] = [
+      // Root TAG_Compound ("")
+      Buffer.from([0x0a, 0x00, 0x00]),
+      // TAG_List ("servers") of TAG_Compound (0x0a), length = 1
+      Buffer.from([0x09]),
+      writeNbtString('servers'),
+      Buffer.from([0x0a, 0x00, 0x00, 0x00, 0x01]),
+      // Entry 0: TAG_String ("name") = "InasCraft Server"
+      Buffer.from([0x08]),
+      writeNbtString('name'),
+      writeNbtString('InasCraft Server'),
+      // Entry 0: TAG_String ("ip") = serverAddress
+      Buffer.from([0x08]),
+      writeNbtString('ip'),
+      writeNbtString(serverAddress),
+      // Entry 0: TAG_Byte ("acceptTextures") = 1
+      Buffer.from([0x01]),
+      writeNbtString('acceptTextures'),
+      Buffer.from([0x01]),
+      // TAG_End (Entry 0) + TAG_End (Root)
+      Buffer.from([0x00, 0x00])
+    ]
+
+    writeFileSync(serversDatPath, Buffer.concat(parts))
+    console.log('[Game] servers.dat criado com o servidor InasCraft')
+  } catch (e) {
+    console.warn('[Game] Não foi possível criar servers.dat:', (e as Error).message)
   }
 }

@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { IPC } from '../../shared/ipc-channels'
-import { store, getInstallDir } from '../store'
+import { store, getInstallDir, getRecommendedRam } from '../store'
 import { launchGame } from '../game/game-launcher'
 import type { PlayerProfile } from '../../shared/types'
 
@@ -12,7 +12,7 @@ export function registerGameHandlers(mainWindow: BrowserWindow): void {
    * Minimiza o launcher enquanto o jogo roda.
    * Restaura e emite eventos de exit/crash ao fechar.
    */
-  ipcMain.handle(IPC.GAME_LAUNCH, async () => {
+  ipcMain.handle(IPC.GAME_LAUNCH, async (_event, options?: { autoConnect?: boolean }) => {
     if (gameRunning) {
       throw new Error('O jogo já está rodando')
     }
@@ -29,7 +29,8 @@ export function registerGameHandlers(mainWindow: BrowserWindow): void {
       throw new Error('Java não encontrado. Execute a instalação primeiro.')
     }
 
-    const ramMb = (store.get('ramMb') as number | undefined) ?? 2048
+    const ramMb = (store.get('ramMb') as number | undefined) ?? getRecommendedRam()
+    const autoConnect = Boolean(options?.autoConnect)
 
     gameRunning = true
 
@@ -66,7 +67,8 @@ export function registerGameHandlers(mainWindow: BrowserWindow): void {
         (line: string) => {
           // Transmitir logs ao renderer (últimas linhas para o modal de crash)
           mainWindow.webContents.send(IPC.GAME_LOG, line)
-        }
+        },
+        autoConnect
       )
     } catch (err) {
       gameRunning = false

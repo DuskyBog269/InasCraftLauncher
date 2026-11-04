@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, unlinkSync, createWriteStream, readFileSync } from 'fs'
+import { existsSync, mkdirSync, unlinkSync, createWriteStream, readFileSync, renameSync, statSync, readdirSync, openSync, readSync, closeSync } from 'fs'
 import { join, dirname } from 'path'
 import { createHash } from 'crypto'
 import https from 'https'
@@ -57,8 +57,8 @@ export function diffManifest(
     // Verificar proteção por path global
     if (isProtected(file.path, remote.protectedPaths)) continue
 
-    // Se não existe local, baixar
-    if (!existsSync(localPath)) {
+    // Se não existe local ou está corrompido (0 bytes), baixar
+    if (!isValidLocalFile(localPath)) {
       toDownload.push(file)
     }
     // Nota: sem validação de hash para simplificar
@@ -171,16 +171,19 @@ export async function applyUpdate(
 }
 
 /**
- * Verificar integridade de todos os arquivos do manifest local.
+ * Verificar integridade de todos os arquivos do manifest local,
+ * removendo mods órfãos/corrompidos e rebaixando o que faltar.
  * Útil para "Reparar instalação".
  */
 export async function verifyAndRepair(
   installDir: string,
   manifest: PackManifest,
   onProgress: PackProgressCallback
-): Promise<void> {
-  const { toDownload } = diffManifest(installDir, manifest)
-  await applyUpdate(installDir, toDownload, [], onProgress)
+): Promise<{ downloaded: number; deleted: number }> {
+  onProgress({ stage: 'Verificando integridade dos mods...', current: 0, total: 1 })
+  const { toDownload, toDelete } = diffManifest(installDir, manifest)
+  await applyUpdate(installDir, toDownload, toDelete, onProgress)
+  return { downloaded: toDownload.length, deleted: toDelete.length }
 }
 
 // ─── Utilitários internos ─────────────────────────────────────────────────────
@@ -243,13 +246,48 @@ export function sanitizeFilePath(filePath: string): string {
   return dir + sanitizeFileName(fileName)
 }
 
+function isValidLocalFile(filePath: string): boolean {
+  try {
+    if (!existsSync(filePath)) return false
+    const stat = statSync(filePath)
+    if (stat.size <= 0) return false
+
+    // Para arquivos .jar/.zip, validar cabeçalho PK e assinatura final EOCD (detecta downloads interrompidos)
+    if (filePath.endsWith('.jar') || filePath.endsWith('.zip')) {
+      if (stat.size < 22) return false
+      const fd = openSync(filePath, 'r')
+      try {
+        const header = Buffer.alloc(4)
+        readSync(fd, header, 0, 4, 0)
+        // ZIP local file header: PK\x03\x04
+        if (header[0] !== 0x50 || header[1] !== 0x4b || header[2] !== 0x03 || header[3] !== 0x04) {
+          return false
+        }
+
+        // ZIP End of Central Directory (PK\x05\x06) nos últimos 65KB
+        const tailSize = Math.min(stat.size, 65557)
+        const tail = Buffer.alloc(tailSize)
+        readSync(fd, tail, 0, tailSize, stat.size - tailSize)
+        if (tail.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06])) === -1) {
+          return false
+        }
+      } finally {
+        closeSync(fd)
+      }
+    }
+
+    return true
+  } catch {
+    return false
+  }
+}
+
 function isProtected(filePath: string, protectedPaths: string[] | undefined): boolean {
   if (!protectedPaths || protectedPaths.length === 0) return false
   return protectedPaths.some((p) => filePath === p || filePath.startsWith(p))
 }
 
 function listFilesRecursive(dir: string, rootDir: string): string[] {
-  const { readdirSync, statSync } = require('fs')
   const results: string[] = []
 
   try {
@@ -275,16 +313,33 @@ function downloadFileWithProgress(
   destPath: string,
   onProgress?: (downloaded: number, total: number, speed: number) => void
 ): Promise<void> {
+  const tempPath = `${destPath}.tmp`
+
+  const cleanupTemp = () => {
+    try {
+      if (existsSync(tempPath)) unlinkSync(tempPath)
+    } catch { /* ignorar erro ao limpar temporário */ }
+  }
+
   return new Promise((resolve, reject) => {
     const doDownload = (currentUrl: string, redirects = 0) => {
-      if (redirects > 5) { reject(new Error('Muitos redirecionamentos')); return }
+      if (redirects > 5) {
+        cleanupTemp()
+        reject(new Error('Muitos redirecionamentos'))
+        return
+      }
 
-      https.get(currentUrl, (res: IncomingMessage) => {
+      const req = https.get(currentUrl, { headers: { 'User-Agent': 'InasCraft-Launcher/1.0' } }, (res: IncomingMessage) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          doDownload(res.headers.location, redirects + 1)
+          res.resume()
+          const redirectUrl = Array.isArray(res.headers.location) ? res.headers.location[0] : res.headers.location
+          const fullRedirectUrl = new URL(redirectUrl, currentUrl).toString()
+          doDownload(fullRedirectUrl, redirects + 1)
           return
         }
         if (res.statusCode !== 200) {
+          res.resume()
+          cleanupTemp()
           reject(new Error(`HTTP ${res.statusCode}`))
           return
         }
@@ -294,7 +349,8 @@ function downloadFileWithProgress(
         let lastTime = Date.now()
         let lastBytes = 0
 
-        const fileStream = createWriteStream(destPath)
+        cleanupTemp()
+        const fileStream = createWriteStream(tempPath)
         res.on('data', (chunk: Buffer) => {
           downloaded += chunk.length
           const now = Date.now()
@@ -307,11 +363,37 @@ function downloadFileWithProgress(
           }
         })
 
-        pipeline(res as NodeJS.ReadableStream, fileStream).then(() => {
-          onProgress?.(total, total, 0)
-          resolve()
-        }).catch(reject)
-      }).on('error', reject)
+        pipeline(res as NodeJS.ReadableStream, fileStream)
+          .then(() => {
+            if (total > 0 && downloaded !== total) {
+              cleanupTemp()
+              reject(new Error(`Download incompleto (${downloaded}/${total} bytes)`))
+              return
+            }
+            if (!isValidLocalFile(tempPath)) {
+              cleanupTemp()
+              reject(new Error('Arquivo baixado está vazio'))
+              return
+            }
+            if (existsSync(destPath)) unlinkSync(destPath)
+            renameSync(tempPath, destPath)
+            onProgress?.(total, total, 0)
+            resolve()
+          })
+          .catch((err) => {
+            cleanupTemp()
+            reject(err)
+          })
+      })
+
+      req.setTimeout(DOWNLOAD_CONFIG.DOWNLOAD_TIMEOUT_MS, () => {
+        req.destroy(new Error('Timeout no download do arquivo'))
+      })
+
+      req.on('error', (err) => {
+        cleanupTemp()
+        reject(err)
+      })
     }
 
     doDownload(url)

@@ -40,7 +40,7 @@ export const NICK_VALIDATION = {
 
 /** Configurações padrão de memória (em MB) */
 export const RAM_DEFAULTS = {
-  MIN: 1024,
+  MIN: 2048,
   RECOMMENDED_FRACTION: 0.5, // metade da RAM do sistema
   MAX_CAP: 8192, // nunca mais que 8 GB por padrão
   STEP: 256

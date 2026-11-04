@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useElectron } from '../hooks/useElectron'
-import type { PlayerProfile, LauncherSettings } from '../../../shared/types'
+import type { PlayerProfile, LauncherSettings, ProgressEvent } from '../../../shared/types'
 import { NICK_VALIDATION, RAM_DEFAULTS } from '../../../shared/constants'
 import { TitleBar } from '../components/TitleBar'
+import { ProgressBar } from '../components/ProgressBar'
 
 interface Props {
   profile: PlayerProfile
@@ -13,7 +14,7 @@ interface Props {
 }
 
 export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUpdated }: Props) {
-  const { invoke, IPC } = useElectron()
+  const { invoke, on, IPC } = useElectron()
 
   const [ramMb, setRamMb] = useState(settings.ramMb ?? 2048)
   const [installDir, setInstallDir] = useState(settings.installDir ?? '')
@@ -25,7 +26,8 @@ export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUp
   const [saving, setSaving] = useState(false)
   const [repairing, setRepairing] = useState(false)
   const [repairStatus, setRepairStatus] = useState('')
-  const [skinPath, setSkinPath] = useState(profile.skinPath ?? '')
+  const [repairProgress, setRepairProgress] = useState<ProgressEvent | null>(null)
+  const [avatarError, setAvatarError] = useState(false)
   const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
@@ -37,7 +39,12 @@ export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUp
       setAppVersion(version)
     }
     loadSystemInfo()
-  }, [invoke, IPC])
+
+    const cleanup = on(IPC.PACK_UPDATE_PROGRESS, (event) => {
+      setRepairProgress(event as ProgressEvent)
+    })
+    return () => cleanup()
+  }, [invoke, on, IPC])
 
   const maxRam = Math.floor(systemRam * 0.75 / RAM_DEFAULTS.STEP) * RAM_DEFAULTS.STEP
   const ramSteps = Math.floor((maxRam - RAM_DEFAULTS.MIN) / RAM_DEFAULTS.STEP)
@@ -55,14 +62,10 @@ export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUp
     if (chosen) setInstallDir(chosen)
   }
 
-  async function handleChooseSkin() {
-    const chosen = await invoke<string | null>(IPC.SETTINGS_CHOOSE_SKIN)
-    if (chosen) setSkinPath(chosen)
-  }
-
   function handleNickChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value
     setNick(value)
+    setAvatarError(false)
     if (nickError) setNickError(validateNick(value))
   }
 
@@ -91,9 +94,6 @@ export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUp
     setSaving(true)
     try {
       await invoke(IPC.SETTINGS_SET, { ramMb, installDir })
-      if (skinPath !== profile.skinPath) {
-        await invoke(IPC.SETTINGS_SET, { 'profile.skinPath': skinPath })
-      }
       onSaved()
     } catch (err) {
       console.error('Erro ao salvar:', err)
@@ -105,13 +105,21 @@ export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUp
   async function handleRepair() {
     setRepairing(true)
     setRepairStatus('Verificando arquivos...')
+    setRepairProgress(null)
     try {
-      await invoke(IPC.PACK_REPAIR)
-      setRepairStatus('✓ Reparação concluída!')
+      const result = await invoke<{ success: boolean; downloaded?: number; deleted?: number }>(IPC.PACK_REPAIR)
+      const downloaded = result?.downloaded ?? 0
+      const deleted = result?.deleted ?? 0
+      if (downloaded === 0 && deleted === 0) {
+        setRepairStatus('✓ Instalação íntegra! Nenhum arquivo corrompido encontrado.')
+      } else {
+        setRepairStatus(`✓ Reparação concluída! (${downloaded} baixado(s), ${deleted} removido(s))`)
+      }
     } catch (err) {
       setRepairStatus(`✗ Erro: ${(err as Error).message}`)
     } finally {
       setRepairing(false)
+      setRepairProgress(null)
     }
   }
 
@@ -213,12 +221,18 @@ export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUp
               disabled={repairing}
               style={styles.utilBtn}
             >
-              🔧 Reparar instalação
+              {repairing ? '⏳ Reparando...' : '🔧 Reparar instalação'}
             </button>
           </div>
 
-          {repairStatus && (
-            <p style={{ fontSize: 12, marginTop: 8, color: repairStatus.startsWith('✓') ? 'var(--color-grass)' : 'var(--color-red)' }}>
+          {repairing && repairProgress && (
+            <div style={{ marginTop: 8 }}>
+              <ProgressBar progress={repairProgress} />
+            </div>
+          )}
+
+          {repairStatus && !repairProgress && (
+            <p style={{ fontSize: 12, marginTop: 8, color: repairStatus.startsWith('✓') ? 'var(--color-grass)' : repairStatus.startsWith('✗') ? 'var(--color-red)' : 'var(--color-text-dim)' }}>
               {repairStatus}
             </p>
           )}
@@ -230,6 +244,18 @@ export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUp
 
           <label style={styles.label}>NICKNAME</label>
           <div style={styles.folderRow}>
+            {!avatarError && (nick.trim() || profile.nick) ? (
+              <img
+                src={`https://mc-heads.net/avatar/${encodeURIComponent(nick.trim() || profile.nick)}/32`}
+                alt={profile.nick}
+                style={{ width: 32, height: 32, imageRendering: 'pixelated', border: '1px solid #333', flexShrink: 0 }}
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <div style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#222', border: '1px solid #333', flexShrink: 0 }}>
+                👤
+              </div>
+            )}
             <input
               className="mc-input"
               value={nick}
@@ -248,25 +274,13 @@ export function SettingsScreen({ profile, settings, onBack, onSaved, onProfileUp
           </div>
           {nickError && <p style={{ color: 'var(--color-red)', fontSize: 12, marginTop: 4 }}>⚠ {nickError}</p>}
 
-          {/* Skin */}
-          <div style={{ marginTop: 12 }}>
-            <label style={styles.label}>SKIN (arquivo .png 64x64)</label>
-            <div style={styles.folderRow}>
-              <input
-                className="mc-input"
-                value={skinPath || 'Padrão (Steve)'}
-                readOnly
-                style={{ flex: 1 }}
-              />
-              <button className="mc-button" onClick={handleChooseSkin}>
-                Escolher
-              </button>
-              {skinPath && (
-                <button className="mc-button mc-button--danger" onClick={() => setSkinPath('')}>
-                  Remover
-                </button>
-              )}
-            </div>
+          {/* Dica de Skin via SkinRestorer */}
+          <div style={{ marginTop: 8, padding: '8px 10px', background: '#181818', border: '1px solid #2a2a2a', fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+            💡 <strong style={{ color: '#bbb' }}>Como trocar de Skin no servidor:</strong>{' '}
+            Dentro do jogo, use o comando{' '}
+            <code style={{ color: 'var(--color-gold)', background: '#111', padding: '1px 5px' }}>/skin set mojang &lt;nick_original&gt;</code>{' '}
+            ou{' '}
+            <code style={{ color: 'var(--color-gold)', background: '#111', padding: '1px 5px' }}>/skin set web classic &quot;url_da_skin.png&quot;</code>
           </div>
         </section>
 

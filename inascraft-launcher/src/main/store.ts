@@ -4,6 +4,18 @@ import { app } from 'electron'
 import type { LauncherSettings } from '../shared/types'
 import { RAM_DEFAULTS } from '../shared/constants'
 
+/**
+ * Calcular RAM recomendada com base na memória total do sistema.
+ * Usa metade da RAM disponível, limitado a RAM_DEFAULTS.MAX_CAP.
+ */
+export function getRecommendedRam(): number {
+  const totalMb = Math.floor(require('os').totalmem() / 1024 / 1024)
+  const half = Math.floor(totalMb * RAM_DEFAULTS.RECOMMENDED_FRACTION)
+  const clamped = Math.max(RAM_DEFAULTS.MIN, Math.min(half, RAM_DEFAULTS.MAX_CAP))
+  // Arredondar para múltiplo de 256
+  return Math.floor(clamped / RAM_DEFAULTS.STEP) * RAM_DEFAULTS.STEP
+}
+
 // Schema para validação e valores padrão
 const schema = {
   installDir: {
@@ -12,7 +24,7 @@ const schema = {
   },
   ramMb: {
     type: 'number',
-    default: 2048
+    default: getRecommendedRam()
   },
   profile: {
     type: 'object',
@@ -37,18 +49,6 @@ export const store = new Store<LauncherSettings & Record<string, any>>({
   name: 'inascraft-config',
   schema: schema as any
 })
-
-/**
- * Calcular RAM recomendada com base na memória total do sistema.
- * Usa metade da RAM disponível, limitado a RAM_DEFAULTS.MAX_CAP.
- */
-export function getRecommendedRam(): number {
-  const totalMb = Math.floor(require('os').totalmem() / 1024 / 1024)
-  const half = Math.floor(totalMb * RAM_DEFAULTS.RECOMMENDED_FRACTION)
-  const clamped = Math.max(RAM_DEFAULTS.MIN, Math.min(half, RAM_DEFAULTS.MAX_CAP))
-  // Arredondar para múltiplo de 256
-  return Math.floor(clamped / RAM_DEFAULTS.STEP) * RAM_DEFAULTS.STEP
-}
 
 /**
  * Retornar diretório de instalação atual.

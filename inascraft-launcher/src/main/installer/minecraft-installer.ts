@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, createWriteStream, unlinkSync, writeFileSync, readFileSync } from 'fs'
+import { existsSync, mkdirSync, createWriteStream, unlinkSync, writeFileSync, readFileSync, renameSync, statSync } from 'fs'
 import { join, dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import http from 'http'
@@ -24,56 +24,72 @@ export async function installMinecraft(
 
   mkdirSync(versionDir, { recursive: true })
 
-  if (existsSync(clientJarJson) && existsSync(clientJarData)) {
-    console.log('[MC] Já instalado')
-    return
+  let libraries: unknown[] = []
+  let assetIndex: { id: string; url: string } | null = null
+
+  if (isValidFile(clientJarJson) && isValidFile(clientJarData)) {
+    try {
+      const existingJson = JSON.parse(readFileSync(clientJarJson, 'utf8'))
+      if (Array.isArray(existingJson.libraries) && existingJson.assetIndex?.id && existingJson.assetIndex?.url) {
+        libraries = existingJson.libraries
+        assetIndex = existingJson.assetIndex
+      }
+    } catch {
+      // JSON inválido, buscar da Mojang abaixo
+    }
   }
 
-  console.log('[MC] Buscando versão...')
+  if (!assetIndex || !isValidFile(clientJarData)) {
+    console.log('[MC] Buscando versão...')
 
-  const manifestUrl = `http://piston-meta.mojang.com/mc/game/version_manifest_v2.json`
-  const manifest = await fetchJson<{ versions: { id: string, url: string }[] }>(manifestUrl)
-  const versionInfo = manifest.versions.find((v: { id: string }) => v.id === MC_VERSION)
+    const manifestUrl = `https://piston-meta.mojang.com/mc/game/version_manifest_v2.json`
+    const manifest = await fetchJson<{ versions: { id: string; url: string; releaseTime?: string; time?: string }[] }>(manifestUrl)
+    const versionInfo = manifest.versions.find((v) => v.id === MC_VERSION)
 
-  if (!versionInfo) {
-    throw new Error(`Versão ${MC_VERSION} não encontrada`)
+    if (!versionInfo) {
+      throw new Error(`Versão ${MC_VERSION} não encontrada`)
+    }
+
+    const versionData = await fetchJson<{
+      downloads: { client: { url: string } }
+      mainClass: string
+      type: string
+      assetIndex: { id: string; url: string }
+      libraries: unknown[]
+    }>(versionInfo.url)
+
+    if (!isValidFile(clientJarData)) {
+      console.log('[MC] Baixando client.jar...')
+      await downloadFile(versionData.downloads.client.url, clientJarData, (d, t) => {
+        onProgress({ stage: 'Baixando Minecraft...', current: d, total: t, file: 'client.jar' })
+      })
+    }
+
+    const versionJson = {
+      id: MC_VERSION,
+      releaseTime: versionInfo.releaseTime || new Date().toISOString(),
+      time: versionInfo.time || new Date().toISOString(),
+      type: versionData.type || 'release',
+      mainClass: versionData.mainClass || 'net.minecraft.client.main.Main',
+      inheritsFrom: null,
+      arguments: { game: [], jvm: [] },
+      libraries: versionData.libraries || [],
+      minimumLauncherVersion: 21,
+      assetIndex: versionData.assetIndex
+    }
+
+    writeFileSync(clientJarJson, JSON.stringify(versionJson, null, 2))
+    libraries = versionData.libraries || []
+    assetIndex = versionData.assetIndex
   }
 
-  const versionData = await fetchJson<{
-    downloads: { client: { url: string } }
-    mainClass: string
-    type: string
-    assetIndex: { id: string, url: string }
-    libraries: unknown[]
-  }>(versionInfo.url)
+  // Baixar/verificar libraries do vanilla (log4j, netty, lwjgl, etc.)
+  await downloadLibraries(installDir, libraries as any[], onProgress)
 
-  console.log('[MC] Baixando client.jar...')
-  await downloadFile(versionData.downloads.client.url, clientJarData, (d, t) => {
-    onProgress({ stage: 'Baixando Minecraft...', current: d, total: t, file: 'client.jar' })
-  })
+  // Baixar/verificar assets (asset index + objetos)
+  await downloadAssets(installDir, assetIndex, onProgress)
 
-  const versionJson = {
-    id: MC_VERSION,
-    releaseTime: versionInfo.releaseTime || new Date().toISOString(),
-    time: versionInfo.time || new Date().toISOString(),
-    type: versionData.type || 'release',
-    mainClass: versionData.mainClass || 'net.minecraft.client.main.Main',
-    inheritsFrom: null,
-    arguments: { game: [], jvm: [] },
-    libraries: versionData.libraries || [],
-    minimumLauncherVersion: 21,
-    assetIndex: versionData.assetIndex
-  }
-
-  writeFileSync(clientJarJson, JSON.stringify(versionJson, null, 2))
-
-  // Baixar libraries do vanilla (log4j, netty, lwjgl, etc.)
-  await downloadLibraries(installDir, versionData.libraries as any[], onProgress)
-
-  // Baixar assets (asset index + objetos)
-  await downloadAssets(installDir, versionData.assetIndex, onProgress)
-
-  console.log('[MC] Instalado')
+  console.log('[MC] Instalado/Verificado')
 }
 
 /**
@@ -110,7 +126,7 @@ async function downloadLibraries(
         const artifact = lib.downloads!.artifact!
         const destPath = join(libDir, artifact.path)
 
-        if (!existsSync(destPath)) {
+        if (!isValidFile(destPath)) {
           mkdirSync(dirname(destPath), { recursive: true })
           try {
             await downloadFile(artifact.url, destPath)
@@ -149,7 +165,7 @@ async function downloadAssets(
 
   // Baixar o asset index JSON
   const indexPath = join(indexesDir, `${assetIndex.id}.json`)
-  if (!existsSync(indexPath)) {
+  if (!isValidFile(indexPath)) {
     console.log(`[MC] Baixando asset index ${assetIndex.id}...`)
     onProgress({ stage: `Baixando asset index...`, current: 0, total: 1 })
     await downloadFile(assetIndex.url, indexPath)
@@ -188,7 +204,7 @@ async function downloadAssets(
         const objDir = join(objectsDir, prefix)
         const objPath = join(objDir, obj.hash)
 
-        if (!existsSync(objPath)) {
+        if (!isValidFile(objPath)) {
           mkdirSync(objDir, { recursive: true })
           const url = `https://resources.download.minecraft.net/${prefix}/${obj.hash}`
           try {
@@ -222,7 +238,7 @@ export function isMinecraftInstalled(installDir: string): boolean {
   const jar = join(installDir, 'versions', MC_VERSION, `${MC_VERSION}.jar`)
   const jsonPath = join(installDir, 'versions', MC_VERSION, `${MC_VERSION}.json`)
 
-  if (!existsSync(jar) || !existsSync(jsonPath)) return false
+  if (!isValidFile(jar) || !isValidFile(jsonPath)) return false
 
   // Verificar se o asset index correto existe
   try {
@@ -230,7 +246,7 @@ export function isMinecraftInstalled(installDir: string): boolean {
     const assetId = jsonData?.assetIndex?.id
     if (assetId) {
       const indexFile = join(installDir, 'assets', 'indexes', `${assetId}.json`)
-      if (!existsSync(indexFile)) return false
+      if (!isValidFile(indexFile)) return false
     }
 
     // Verificar se ao menos o log4j-core está presente (dependência crítica do Forge)
@@ -452,13 +468,30 @@ function fetchJson<T>(url: string): Promise<T> {
   })
 }
 
+function isValidFile(filePath: string): boolean {
+  try {
+    return existsSync(filePath) && statSync(filePath).size > 0
+  } catch {
+    return false
+  }
+}
+
 function downloadFile(url: string, dest: string, onProgress?: (d: number, t: number) => void): Promise<void> {
+  const tempPath = `${dest}.tmp`
+
+  const cleanupTemp = () => {
+    try {
+      if (existsSync(tempPath)) unlinkSync(tempPath)
+    } catch { /* ignorar */ }
+  }
+
   return new Promise((resolve, reject) => {
     if (!url || typeof url !== 'string') { reject(new Error('URL inválida: ' + url)); return }
     const client = url.startsWith('https') ? https : http
-    client.get(url, { headers: { 'User-Agent': 'InasCraft-Launcher/1.0' } }, (res: IncomingMessage) => {
+    const req = client.get(url, { headers: { 'User-Agent': 'InasCraft-Launcher/1.0' } }, (res: IncomingMessage) => {
       // Seguir redirects (301, 302, etc.)
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
+        res.resume()
         const location = res.headers.location
         if (location) {
           const redirectUrl = Array.isArray(location) ? location[0] : location
@@ -468,10 +501,16 @@ function downloadFile(url: string, dest: string, onProgress?: (d: number, t: num
           return
         }
       }
-      if (res.statusCode !== 200) { reject(new Error(`HTTP ${res.statusCode}`)); return }
+      if (res.statusCode !== 200) {
+        res.resume()
+        cleanupTemp()
+        reject(new Error(`HTTP ${res.statusCode}`))
+        return
+      }
       const total = parseInt(res.headers['content-length'] ?? '0', 10)
       let downloaded = 0, lastTime = Date.now()
-      const file = createWriteStream(dest)
+      cleanupTemp()
+      const file = createWriteStream(tempPath)
       res.on('data', (chunk: Buffer) => {
         downloaded += chunk.length
         if (Date.now() - lastTime >= 500 && onProgress) {
@@ -480,8 +519,35 @@ function downloadFile(url: string, dest: string, onProgress?: (d: number, t: num
         }
       })
       pipeline(res as NodeJS.ReadableStream, file)
-        .then(() => { onProgress?.(total, total); resolve() })
-        .catch(reject)
-    }).on('error', reject)
+        .then(() => {
+          if (total > 0 && downloaded !== total) {
+            cleanupTemp()
+            reject(new Error(`Download incompleto (${downloaded}/${total} bytes)`))
+            return
+          }
+          if (!isValidFile(tempPath)) {
+            cleanupTemp()
+            reject(new Error('Arquivo baixado está vazio'))
+            return
+          }
+          if (existsSync(dest)) unlinkSync(dest)
+          renameSync(tempPath, dest)
+          onProgress?.(total, total)
+          resolve()
+        })
+        .catch((err) => {
+          cleanupTemp()
+          reject(err)
+        })
+    })
+
+    req.setTimeout(60000, () => {
+      req.destroy(new Error('Timeout no download'))
+    })
+
+    req.on('error', (err) => {
+      cleanupTemp()
+      reject(err)
+    })
   })
 }

@@ -7,8 +7,20 @@ export function ServerStatus() {
   const { invoke, IPC } = useElectron()
   const [status, setStatus] = useState<ServerStatusType | null>(null)
   const [checking, setChecking] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const serverConfigured = SERVER_CONFIG.IP !== 'YOUR_SERVER_IP'
+  const serverAddress = SERVER_CONFIG.PORT === 25565
+    ? SERVER_CONFIG.IP
+    : `${SERVER_CONFIG.IP}:${SERVER_CONFIG.PORT}`
+
+  async function handleCopyIp() {
+    try {
+      await invoke(IPC.CLIPBOARD_WRITE, serverAddress)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* ignorar */ }
+  }
 
   useEffect(() => {
     if (!serverConfigured) return
@@ -82,6 +94,14 @@ export function ServerStatus() {
       >
         ↻
       </button>
+
+      <button
+        style={styles.copyBtn}
+        onClick={handleCopyIp}
+        title={`Copiar IP (${serverAddress})`}
+      >
+        {copied ? '✓ IP copiado!' : '📋 Copiar IP'}
+      </button>
     </div>
   )
 }
@@ -111,5 +131,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     padding: '0 2px',
     textShadow: '1px 1px 0 #000',
+  },
+  copyBtn: {
+    background: 'rgba(18, 18, 18, 0.8)',
+    border: '1px solid #444',
+    color: 'var(--color-text)',
+    cursor: 'pointer',
+    fontSize: 10,
+    padding: '2px 6px',
+    marginLeft: 4,
+    fontFamily: 'inherit',
   },
 }

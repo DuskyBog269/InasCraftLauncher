@@ -95,9 +95,31 @@ export function registerInstallHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle(IPC.PACK_REPAIR, async () => {
     const installDir = getInstallDir()
     const sendProgress = (p: ProgressEvent) => mainWindow.webContents.send(IPC.PACK_UPDATE_PROGRESS, p)
+
     const manifest = await fetchRemoteManifest()
-    if (!manifest) throw new Error('Sem internet')
-    await verifyAndRepair(installDir, manifest, sendProgress)
-    return { success: true }
+    if (!manifest) throw new Error('Sem conexão com a internet para verificar os arquivos')
+
+    // 1. Verificar Java
+    sendProgress({ stage: 'Verificando Java 17...', current: 0, total: 4 })
+    const javaPath = await resolveJava(installDir, (d, t, s) => {
+      sendProgress({ stage: 'Baixando Java 17...', current: d, total: t, speed: s })
+    })
+    store.set('javaPath', javaPath)
+
+    // 2. Verificar Minecraft (client.jar, libraries e assets)
+    sendProgress({ stage: 'Verificando arquivos do Minecraft...', current: 1, total: 4 })
+    await installMinecraft(installDir, javaPath, sendProgress)
+
+    // 3. Verificar Forge
+    sendProgress({ stage: 'Verificando Forge...', current: 2, total: 4 })
+    if (!isForgeInstalled(installDir)) {
+      await installForge(installDir, javaPath, sendProgress)
+    }
+
+    // 4. Verificar e reparar mods do manifest (inclui validação de ZIP/JAR e limpeza de órfãos)
+    const { downloaded, deleted } = await verifyAndRepair(installDir, manifest, sendProgress)
+    store.set('installedVersion', manifest.version)
+
+    return { success: true, downloaded, deleted }
   })
 }

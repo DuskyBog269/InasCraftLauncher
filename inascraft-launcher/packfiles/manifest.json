@@ -715,6 +715,78 @@
     {
       "path": "mods/trenzalore-forge-3.3.10+mc1.20.1-all.jar",
       "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/trenzalore-forge-3.3.10+mc1.20.1-all.jar"
+    },
+    {
+      "path": "mods/alexscaves-2.0.2.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/alexscaves-2.0.2.jar"
+    },
+    {
+      "path": "mods/YungsBetterCaves-1.20.1-Forge-2.0.7.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/YungsBetterCaves-1.20.1-Forge-2.0.7.jar"
+    },
+    {
+      "path": "mods/YungsCaveBiomes-1.20.1-Forge-2.0.5.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/YungsCaveBiomes-1.20.1-Forge-2.0.5.jar"
+    },
+    {
+      "path": "mods/TerraBlender-forge-1.20.1-3.0.1.10.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/TerraBlender-forge-1.20.1-3.0.1.10.jar"
+    },
+    {
+      "path": "mods/angelring-1.20.1-2.3.1.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/angelring-1.20.1-2.3.1.jar"
+    },
+    {
+      "path": "mods/camera-forge-1.20.1-1.0.20.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/camera-forge-1.20.1-1.0.20.jar"
+    },
+    {
+      "path": "mods/chat_heads-0.15.7-forge-1.20.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/chat_heads-0.15.7-forge-1.20.jar"
+    },
+    {
+      "path": "mods/createaddition-1.20.1-1.3.3.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/createaddition-1.20.1-1.3.3.jar"
+    },
+    {
+      "path": "mods/deeperdarker-forge-1.20.1-1.3.3.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/deeperdarker-forge-1.20.1-1.3.3.jar"
+    },
+    {
+      "path": "mods/ImmediatelyFast-Forge-1.5.5+1.20.4.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/ImmediatelyFast-Forge-1.5.5+1.20.4.jar"
+    },
+    {
+      "path": "mods/JustEnoughMekanismMultiblocks-1.20.1-4.27.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/JustEnoughMekanismMultiblocks-1.20.1-4.27.jar"
+    },
+    {
+      "path": "mods/mcjtylib-1.20-8.0.9.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/mcjtylib-1.20-8.0.9.jar"
+    },
+    {
+      "path": "mods/rftoolsbase-1.20-5.0.7.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/rftoolsbase-1.20-5.0.7.jar"
+    },
+    {
+      "path": "mods/rftoolsbuilder-1.20-6.0.11.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/rftoolsbuilder-1.20-6.0.11.jar"
+    },
+    {
+      "path": "mods/rftoolsstorage-1.20-5.0.4.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/rftoolsstorage-1.20-5.0.4.jar"
+    },
+    {
+      "path": "mods/rftoolsutility-1.20-6.0.7.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/rftoolsutility-1.20-6.0.7.jar"
+    },
+    {
+      "path": "mods/Steam_Rails-1.7.3+forge-mc1.20.1.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/Steam_Rails-1.7.3+forge-mc1.20.1.jar"
+    },
+    {
+      "path": "mods/tacz-1.20.1-1.1.8-hotfix2.jar",
+      "url": "https://github.com/DuskyBog269/InasCraftLauncher/releases/download/mods/tacz-1.20.1-1.1.8-hotfix2.jar"
     }
   ]
 }

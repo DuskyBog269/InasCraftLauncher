@@ -4,12 +4,15 @@ import type { PackManifest } from '../../../shared/types'
 interface Props {
   manifest: PackManifest
   currentVersion?: string
+  addedFiles?: string[]
+  removedFiles?: string[]
   onUpdate: () => void
   onSkip: () => void
 }
 
-export function ChangelogModal({ manifest, currentVersion, onUpdate, onSkip }: Props) {
+export function ChangelogModal({ manifest, currentVersion, addedFiles = [], removedFiles = [], onUpdate, onSkip }: Props) {
   const isFirstInstall = !currentVersion
+  const hasFileDiff = addedFiles.length > 0 || removedFiles.length > 0
 
   return (
     <div style={styles.overlay}>
@@ -33,26 +36,58 @@ export function ChangelogModal({ manifest, currentVersion, onUpdate, onSkip }: P
           </p>
         )}
 
-        {/* Changelog */}
+        {/* Changelog + Lista de Mods adicionados/removidos */}
         <div style={styles.changelogBox}>
-          <p style={styles.changelogLabel}>NOVIDADES</p>
+          <p style={styles.changelogLabel}>
+            {isFirstInstall ? 'CONTEÚDO DO MODPACK' : 'ALTERAÇÕES DO PACK'}
+          </p>
           <div style={styles.changelogText}>
-            {manifest.changelog
-              ? manifest.changelog.split('\n').map((line, i) => (
+            {manifest.changelog && (
+              <div style={{ marginBottom: hasFileDiff ? 8 : 0 }}>
+                {manifest.changelog.split('\n').map((line, i) => (
                   <p key={i} style={{ margin: '2px 0', color: line.startsWith('-') ? '#ccc' : '#aaa' }}>
                     {line || <br />}
                   </p>
-                ))
-              : <p style={{ color: '#666' }}>Sem changelog disponível.</p>
-            }
+                ))}
+              </div>
+            )}
+
+            {hasFileDiff ? (
+              <div>
+                {addedFiles.map((file) => (
+                  <p key={`add-${file}`} style={{ margin: '2px 0', color: 'var(--color-grass)', fontFamily: 'Consolas, monospace', fontSize: 11 }}>
+                    + {file}
+                  </p>
+                ))}
+                {removedFiles.map((file) => (
+                  <p key={`rem-${file}`} style={{ margin: '2px 0', color: 'var(--color-red)', fontFamily: 'Consolas, monospace', fontSize: 11 }}>
+                    - {file}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              !manifest.changelog && <p style={{ color: '#666' }}>Sincronização de versão do modpack.</p>
+            )}
           </div>
         </div>
 
         {/* Informações do modpack */}
         <div style={styles.infoRow}>
           <span style={styles.infoTag}>MC {manifest.minecraft}</span>
-          <span style={styles.infoTag}>{manifest.modloader} {manifest.modloaderVersion}</span>
-          <span style={styles.infoTag}>{manifest.files.length} arquivos</span>
+          <span style={styles.infoTag}>
+            {manifest.modloader}{manifest.modloaderVersion ? ` ${manifest.modloaderVersion}` : ''}
+          </span>
+          {addedFiles.length > 0 && (
+            <span style={{ ...styles.infoTag, color: 'var(--color-grass)', borderColor: '#3d5c28' }}>
+              +{addedFiles.length} para baixar
+            </span>
+          )}
+          {removedFiles.length > 0 && (
+            <span style={{ ...styles.infoTag, color: 'var(--color-red)', borderColor: '#662222' }}>
+              -{removedFiles.length} removido(s)
+            </span>
+          )}
+          <span style={styles.infoTag}>{manifest.files.length} mods no total</span>
         </div>
 
         {/* Botões */}

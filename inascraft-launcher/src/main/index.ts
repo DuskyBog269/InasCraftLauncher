@@ -78,23 +78,38 @@ function setupAutoUpdater(): void {
   }
 }
 
-app.whenReady().then(() => {
-  // Configurar app user model id no Windows
-  electronApp.setAppUserModelId('com.inascraft.launcher')
+// Garantir apenas uma instância aberta por vez
+const gotTheLock = app.requestSingleInstanceLock()
 
-  // Otimizações padrão do electron-toolkit
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+    }
   })
 
-  createWindow()
-  registerAllIpcHandlers(mainWindow!)
-  setupAutoUpdater()
+  app.whenReady().then(() => {
+    // Configurar app user model id no Windows
+    electronApp.setAppUserModelId('com.inascraft.launcher')
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    // Otimizações padrão do electron-toolkit
+    app.on('browser-window-created', (_, window) => {
+      optimizer.watchWindowShortcuts(window)
+    })
+
+    createWindow()
+    registerAllIpcHandlers(mainWindow!)
+    setupAutoUpdater()
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
   })
-})
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

@@ -21,7 +21,7 @@ export function ProgressBar({ progress }: Props) {
   const { stage, current, total, speed, file } = progress
   const hasTotal = total > 0
   const pct = hasTotal ? Math.min(100, (current / total) * 100) : 0
-  const isBytes = total > 1024 // heurística: se total > 1 KB, provavelmente são bytes
+  const isBytes = total > 100_000 // heurística: acima de 100 KB são bytes (evita tratar os ~3500 assets como KB)
 
   return (
     <div style={styles.container}>

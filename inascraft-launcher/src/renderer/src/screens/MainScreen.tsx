@@ -56,6 +56,7 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
   const [isOffline, setIsOffline] = useState(false)
   const [installedVersion, setInstalledVersion] = useState<string | undefined>(settings.installedVersion)
   const [pendingManifest, setPendingManifest] = useState<PackManifest | null>(null)
+  const [updateDiff, setUpdateDiff] = useState<{ addedFiles: string[]; removedFiles: string[] }>({ addedFiles: [], removedFiles: [] })
   const [showChangelog, setShowChangelog] = useState(false)
   const [crashData, setCrashData] = useState<{ log: string; logPath: string } | null>(null)
   const [launcherUpdateInfo, setLauncherUpdateInfo] = useState<{ status: string; info?: { version: string } } | null>(null)
@@ -110,9 +111,19 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
     }))
 
     cleanups.push(on(IPC.PACK_CHECK_UPDATE, (data) => {
-      const updateData = data as { hasUpdate: boolean; manifest: PackManifest; isFirstInstall?: boolean }
+      const updateData = data as {
+        hasUpdate: boolean
+        manifest: PackManifest
+        isFirstInstall?: boolean
+        addedFiles?: string[]
+        removedFiles?: string[]
+      }
       if (updateData.hasUpdate || updateData.isFirstInstall) {
         setPendingManifest(updateData.manifest)
+        setUpdateDiff({
+          addedFiles: updateData.addedFiles ?? [],
+          removedFiles: updateData.removedFiles ?? []
+        })
         setShowChangelog(true)
         setLaunchState('update-available')
         // O handlePlay está esperando essa promise — resolver quando usuário escolher
@@ -382,6 +393,8 @@ export function MainScreen({ profile, settings, onOpenSettings }: Props) {
         <ChangelogModal
           manifest={pendingManifest}
           currentVersion={installedVersion}
+          addedFiles={updateDiff.addedFiles}
+          removedFiles={updateDiff.removedFiles}
           onUpdate={handleApplyUpdate}
           onSkip={handleSkipUpdate}
         />

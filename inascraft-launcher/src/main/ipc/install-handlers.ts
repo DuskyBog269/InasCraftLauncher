@@ -58,7 +58,9 @@ export function registerInstallHandlers(mainWindow: BrowserWindow): void {
           mainWindow.webContents.send(IPC.PACK_CHECK_UPDATE, {
             hasUpdate: !!installedVersion,
             isFirstInstall: !installedVersion,
-            manifest
+            manifest,
+            addedFiles: toDownload.map((f) => f.path.split('/').pop() || f.path),
+            removedFiles: toDelete.map((f) => f.split('/').pop() || f)
           })
         } else {
           mainWindow.webContents.send(IPC.PACK_CHECK_UPDATE, {
